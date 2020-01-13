@@ -11,7 +11,7 @@ class AppendToJson:
             knowledge: dict，抽取出的知识
         Returns:
         """
-        with open(file_path, 'a', encoding='utf-8') as f_out:
+        with open(file_path, 'a+', encoding='utf-8') as f_out:
             try:
                 f_out.write(json.dumps(knowledge, ensure_ascii=False))
                 f_out.write('\n')

@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+data/knowledge_triple.json
+model/*
+data/*
+tdata/*
 # C extensions
 *.so
 
