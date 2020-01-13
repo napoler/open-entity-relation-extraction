@@ -1,5 +1,8 @@
 jieba
 pyltp==0.2.1
+<<<<<<< HEAD
 tkitDb==0.0.1.2
 tkitFile
 tkitText
+=======
+>>>>>>> 760a7cbf583c60896f7d6053e6fb183fb5fabeb8
