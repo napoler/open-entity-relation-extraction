@@ -34,10 +34,10 @@ if __name__ == '__main__':
             # 分词处理
             lemmas = nlp.segment(origin_sentence)
 
-            print("lemmas",lemmas)
+            # print("lemmas",lemmas)
             # 词性标注
             words_postag = nlp.postag(lemmas)
-            print("words_postag",words_postag)
+            # print("words_postag",words_postag)
 
             # 命名实体识别
             words_netag = nlp.netag(words_postag)

@@ -3,7 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
- 
+
+code/demo/tkitfiles
+关系判断/tkitfiles
 data/knowledge_triple.json
 model/*
 data/*

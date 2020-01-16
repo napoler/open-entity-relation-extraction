@@ -11,7 +11,7 @@ sys.path.append("..")  # 先跳出当前目录
 from bean.word_unit import WordUnit
 from bean.sentence_unit import SentenceUnit
 from core.entity_combine import EntityCombine
-
+import pkuseg
 
 class NLP:
     """进行自然语言处理，包括分词，词性标注，命名实体识别，依存句法分析
@@ -76,7 +76,31 @@ class NLP:
         # lemmas = pynlpir.segment(sentence, pos_tagging=False)
         lemmas = jieba.lcut(sentence)
         # pynlpir.close()  # 释放
+        # print("")
+
         return lemmas
+    # def segment(self,sentence):
+    #     seg = pkuseg.pkuseg(postag=True)           # 以默认配置加载模型
+    #     text = seg.cut(sentence)  # 进行分词
+    #     # print(text)
+    #     w=''
+    #     ws=[]
+    #     for it,p in text:
+    #         if p.startswith("n"):
+    #             # print(it)
+    #             w=w+it
+                
+    #         else:
+    #             # print(w)
+    #             if len(w)>0:
+    #                 ws.append(w)
+    #                 w=''
+    #             else:
+    #                 ws.append(it)
+
+    #     # print(ws)
+    #     return ws
+
 
     def postag(self, lemmas):
         """对分词后的结果进行词性标注
