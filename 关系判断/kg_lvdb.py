@@ -30,6 +30,18 @@ class KgDatabase:
             }
             self.tdb.put_data([(key,data)])
             # self.tdb.put_data([item])
+    def auto_sentence(self,key,data):
+        """
+        自动储存知识
+        data={
+        "sentence":item["句子"],
+        "kg":item['知识'],
+        "label":1
+        }
+           
+        """
+        self.tdb.load("kg_auto_sentence")
+        self.tdb.put_data([(key,data)])
     def mark_sentence(self,key,data):
         """
         将json版本保存到数据
@@ -44,6 +56,27 @@ class KgDatabase:
         # tt=tkitText.Text()
         # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
         self.tdb.put_data([(key,data)])
+    def get_unmarked_auto_sentence(self):
+        """
+        获取没有标记的数据
+        自动标记数据
+        """
+        self.tdb.load("kg_auto_sentence")
+        for k,v in self.tdb.get_all():
+            # print(k)
+            self.tdb.load("kg_mark")
+            if self.tdb.get(k)==None:
+                pass
+            else:
+                self.tdb.load("kg_auto_sentence")
+                continue
+            # print(self.tdb.get(k))  
+            try: 
+                yield k,self.tdb.str_dict(v)
+            except:
+                self.tdb.load("kg_auto_sentence")
+                continue
+            self.tdb.load("kg_auto_sentence")
     def get_unmarked(self):
         """
         获取没有标记的数据
@@ -101,7 +134,7 @@ class KgDatabase:
                 one={}
                 one['sentence']=" [kg] "+",".join(it['kg'])+" [/kg] "+it['sentence']
                 one['label']=it['label']-1
-                if int(one['label']) in [0,1]:
+                if int(one['label']) in [0,1] and len(it['kg'])==3:
                    data.append(one)
                 else:
                     print(it)
@@ -122,9 +155,22 @@ class KgDatabase:
             # return label+'_'+new
             return new
     def mark_word_label(self,text,label_b,word,tp="实体"):
-        p=word
+        # print("pp",text,label_b,word)
+        
+        #自动搜索最大匹配单词
+        tt=tkitText.Text()
+        c,r=tt.find_match(text,word)
+        if r>50:
+            p=c
+        else:
+            p=word
+
+        # a="嘉朵能够帮助或带领丹恩·萧完成许多事，如逛商店；牠在完成一天的工作后便待在马厩里"
+        # b="帮助丹恩"
+
         start_p =text.find(p)
         end_p=text.find(p)+len(p)-1
+        # print("start_p",start_p)
         if start_p>=0:
             if len(p)>3:
                 label_b[start_p]=self.auto_label(label_b[start_p],'B-'+tp)
@@ -165,7 +211,8 @@ class KgDatabase:
             kg=self.tdb.get(key)
 
             if kg==None:
-                kgs.append(it['kg'])
+                if len(it['kg'])==3:
+                   kgs.append(it['kg'])
                 # print('111')
             else:
                 # print("222222222222")
@@ -173,7 +220,8 @@ class KgDatabase:
                     # print('kgs',kg) 
                     kg=self.tdb.str_dict(kg) 
                     kgs=kg['kgs']
-                    kgs.append(it['kg'])
+                    if len(it['kg'])==3:
+                        kgs.append(it['kg'])
                 except:
                     pass
             # print(kgs)
@@ -205,16 +253,44 @@ class KgDatabase:
             try: 
                 it=self.tdb.str_dict(v)
                 # print("it",it)
-                label=['O']*len(it['sentence'])
+                
+                ner={}
                 for one in it['kgs']:
                     # print(one)
-                    label,s1=self.mark_word_label(it['sentence'],label,one[0],"实体")
-                    label,s1=self.mark_word_label(it['sentence'],label,one[1],"关系")
-                # print(label)
-                d={'text':list(it['sentence']),'label':label}
-                # print(d)
-                # print(d)
-                data.append(d)
+                    # label,s1=self.mark_word_label(it['sentence'],label,one[0],"实体")
+                    # label,s1=self.mark_word_label(it['sentence'],label,one[1],"关系")
+                    try:
+                        if one[1] not in ner[one[0]]:
+                            ner[one[0]].append(one[1])
+                    except:
+                        ner[one[0]]=[one[1]]
+                # print(ner)
+                
+                for nr in ner:
+                    s=0
+                    label=['O']*len(it['sentence'])
+                    # print(ner[nr])
+                    for n in ner[nr]:
+                        # print(n)
+                        # print("label",label)
+                        # print(it['sentence'])
+                        label,s1=self.mark_word_label(it['sentence'],label,n,"关系")
+                        # print(label,s1)
+                        if s1>=0:
+                            s=s+1
+                    if s>0:
+                        one_ner={'text':list(nr+'#'+it['sentence']),'label':['K']*len(nr)+['X']+label}
+                        data.append(one_ner)
+                        # print(one_ner)
+
+
+
+
+                # # print(label)
+                # d={'text':list(it['sentence']),'label':label}
+                # # print(d)
+                # # print(d)
+                # data.append(d)
             except:
                 # self.tdb.load("kg")
                 continue
