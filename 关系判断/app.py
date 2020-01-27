@@ -14,47 +14,47 @@ import tkitSearch
 
 from cocoNLP.extractor import extractor
 from tkitMarker import *
-# import tkitFile
-P=Pre()
-P.args['conf']="tkitfiles/v0.1/config.json"
-P.args['load_path']="tkitfiles/v0.1/pytorch_model.bin"
-P.args['vocab']="tkitfiles/v0.1/vocab.txt"
-P.args['label_file']="tkitfiles/v0.1/tag.txt"
-P.args['max_length']=50
-P.setconfig()
+# # import tkitFile
+# P=Pre()
+# P.args['conf']="tkitfiles/v0.1/config.json"
+# P.args['load_path']="tkitfiles/v0.1/pytorch_model.bin"
+# P.args['vocab']="tkitfiles/v0.1/vocab.txt"
+# P.args['label_file']="tkitfiles/v0.1/tag.txt"
+# P.args['max_length']=50
+# P.setconfig()
 
-#初始化提取关系词
-TNer=Pre()
-TNer.args['conf']="tkitfiles/ner_rel/config.json"
-TNer.args['load_path']="tkitfiles/ner_rel/pytorch_model.bin"
-TNer.args['vocab']="tkitfiles/ner_rel/vocab.txt"
-TNer.args['label_file']="tkitfiles/ner_rel/tag.txt"
-TNer.args['albert_path']="tkitfiles/ner_rel"
-TNer.args['albert_embedding']=312
-TNer.args['rnn_hidden']=400
+# #初始化提取关系词
+# TNer=Pre()
+# TNer.args['conf']="tkitfiles/ner_rel/config.json"
+# TNer.args['load_path']="tkitfiles/ner_rel/pytorch_model.bin"
+# TNer.args['vocab']="tkitfiles/ner_rel/vocab.txt"
+# TNer.args['label_file']="tkitfiles/ner_rel/tag.txt"
+# TNer.args['albert_path']="tkitfiles/ner_rel"
+# TNer.args['albert_embedding']=312
+# TNer.args['rnn_hidden']=400
 
-TNer.model_version='ner_rel'
-TNer.args['max_length']=50
-TNer.setconfig()
-
-
-# 初始化提取实体
-
-Ner=Pre()
-Ner.args['conf']="tkitfiles/ner/config.json"
-Ner.args['load_path']="tkitfiles/ner/pytorch_model.bin"
-Ner.args['vocab']="tkitfiles/ner/vocab.txt"
-Ner.args['label_file']="tkitfiles/ner/tag.txt"
-Ner.args['albert_path']="tkitfiles/ner"
-Ner.args['albert_embedding']=312
-Ner.args['rnn_hidden']=400
-
-Ner.model_version='ner'
-Ner.args['max_length']=50
-Ner.setconfig()
+# TNer.model_version='ner_rel'
+# TNer.args['max_length']=50
+# TNer.setconfig()
 
 
-ex = extractor()
+# # 初始化提取实体
+
+# Ner=Pre()
+# Ner.args['conf']="tkitfiles/ner/config.json"
+# Ner.args['load_path']="tkitfiles/ner/pytorch_model.bin"
+# Ner.args['vocab']="tkitfiles/ner/vocab.txt"
+# Ner.args['label_file']="tkitfiles/ner/tag.txt"
+# Ner.args['albert_path']="tkitfiles/ner"
+# Ner.args['albert_embedding']=312
+# Ner.args['rnn_hidden']=400
+
+# Ner.model_version='ner'
+# Ner.args['max_length']=50
+# Ner.setconfig()
+
+
+# ex = extractor()
 from harvesttext import HarvestText
 
 import pkuseg
@@ -64,12 +64,12 @@ from pprint import pprint
 
 
 import os
-LTP_DATA_DIR = '/mnt/data/dev/model/ltp/ltp_data_v3.4.0'  # ltp模型目录的路径
-ner_model_path = os.path.join(LTP_DATA_DIR, 'ner.model')  # 命名实体识别模型路径，模型名称为`pos.model`
-cws_model_path = os.path.join(LTP_DATA_DIR, 'cws.model')  # 分词模型路径，模型名称为`cws.model`
-pos_model_path = os.path.join(LTP_DATA_DIR, 'pos.model')  # 词性标注模型路径，模型名称为`pos.model`
-srl_model_path = os.path.join(LTP_DATA_DIR, 'pisrl.model')  # 语义角色标注模型目录路径，模型目录为`srl`。注意该模型路径是一个目录，而不是一个文件。
-par_model_path = os.path.join(LTP_DATA_DIR, 'parser.model')  # 依存句法分析模型路径，模型名称为`parser.model`
+# LTP_DATA_DIR = '/mnt/data/dev/model/ltp/ltp_data_v3.4.0'  # ltp模型目录的路径
+# ner_model_path = os.path.join(LTP_DATA_DIR, 'ner.model')  # 命名实体识别模型路径，模型名称为`pos.model`
+# cws_model_path = os.path.join(LTP_DATA_DIR, 'cws.model')  # 分词模型路径，模型名称为`cws.model`
+# pos_model_path = os.path.join(LTP_DATA_DIR, 'pos.model')  # 词性标注模型路径，模型名称为`pos.model`
+# srl_model_path = os.path.join(LTP_DATA_DIR, 'pisrl.model')  # 语义角色标注模型目录路径，模型目录为`srl`。注意该模型路径是一个目录，而不是一个文件。
+# par_model_path = os.path.join(LTP_DATA_DIR, 'parser.model')  # 依存句法分析模型路径，模型名称为`parser.model`
 
 from pyltp import Parser
 from pyltp import SementicRoleLabeller
@@ -81,25 +81,25 @@ from pyltp import NamedEntityRecognizer
 
 
 
-kg=KgDatabase()
-ht0 = HarvestText()
-tfile=tkitFile.File()
-tt=tkitText.Text()
+# kg=KgDatabase()
+# ht0 = HarvestText()
+# tfile=tkitFile.File()
 # tt=tkitText.Text()
-# tt.load_ht(ht_model="tkitfiles/ht.model")
+# # tt=tkitText.Text()
+# # tt.load_ht(ht_model="tkitfiles/ht.model")
 
-tt.load_ht()
-# tt.typed_words(ht_model="tkitfiles/ht.model")
-i=0
-tclass=classify(model_name_or_path='tkitfiles/checkkg')
-#检查是不是知识
-check_kg=classify(model_name_or_path='../tdata/albert_check_kg')
-# check_pet=classify(model_name_or_path='../tdata/albert-chinese-pytorch-pet')
-
-
-
+# tt.load_ht()
+# # tt.typed_words(ht_model="tkitfiles/ht.model")
+# i=0
+# tclass=classify(model_name_or_path='tkitfiles/checkkg')
+# #检查是不是知识
+# check_kg=classify(model_name_or_path='../tdata/albert_check_kg')
+# # check_pet=classify(model_name_or_path='../tdata/albert-chinese-pytorch-pet')
 
 
+
+
+from mark import *
 
 
 
@@ -213,6 +213,8 @@ def kg_list():
     tp=request.args.get('type')
     state=request.args.get('state')
     print(state)
+    if state==None:
+        state="2"  
     # states=[]
     if label==None or len(label)==0:
         label="all"
@@ -295,7 +297,7 @@ def kg_edit(key):
     
     
     """
-
+    
     # data=[]
     kg.tdb.load("kg_mark")
     data=kg.tdb.get(key)
@@ -357,6 +359,28 @@ def add():
         kg2=''
     if kg3==None:
         kg3=''
+    onlykgs=pre_kg(sentence)
+    data={'sentence':sentence,'kg':[kg1,kg2,kg3]
+    }
+    # pre(data)
+    p,pr=pre(data)
+    data['pre']=pr
+    data['ai']=p
+    kgs=[]
+    for kg_one in onlykgs:
+        # data['kg']=kg
+        key=tt.md5(data["sentence"]+'，'.join(kg_one))
+        print(key)
+        # kg_status=kg.check_marked(key)
+        
+        if kg.check_marked(key)==True:
+            kgs.append((kg_one,key,'True'))
+        else:
+            print("kg检查失败")
+            kgs.append((kg_one,key,'False'))
+
+
+
     return render_template("add.html", **locals())
 @app.route("/add_submit",methods=[ 'GET'])
 def add_submit():

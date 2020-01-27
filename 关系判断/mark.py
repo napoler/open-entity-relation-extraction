@@ -651,8 +651,11 @@ def pre_kg(text):
                 #添加kg
                 kgs.append(item['kg'])
 
-        
-    return kgs
+    ht_kg=tt.ht.triple_extraction(sent=text)
+    jiagu_kg = jiagu.knowledge(text)
+    all_kg=ht_kg+jiagu_kg+kgs
+    # all_kg=kgs   
+    return all_kg
 
 #自动分析文本 预先预测出可能的知识
 def auto_text_pre(path="/mnt/data/dev/github/数据处理工具/tool_data_processing/data/text"):
@@ -1031,56 +1034,57 @@ def index_one(k,item):
 # # print(s.find('文档'))
 
 
+if __name__ == '__main__':
 
-print("""
-1:自动标记文本 进行初步筛选
-2:开始手动标记 对自动标记的数据进行筛查
-3: 重新筛查之前数据(纯手动)
-4: 自动处理已经标注的数据
-5:自动重新筛选之前数据
-6:统计已经标记的数据
-7:重新筛查手动标记数据和预测不一致的
-8:重新筛查之前数据(自动,高于阀值自动标记)
-9:重新筛查之前数据(半自动,高于阀值自动放行)
-10:进行搜索索引操作
-""")
-x = input("输入你要执行的命令:")
-x=int(x)
-if x==1:
-    auto_text_pre()
-elif x==2:
-    print("运行2")
-    run_mark_pred()
-elif x==3:
-    print("检查label==2的")
-    # run_recheck(2,state='2',check_type=1)
-    run_recheck(2,state='1',check_type=0)
-    print("检查label==1的")
-    run_recheck(1)
-elif x==4:
-    auto_run_mark_pred()
-elif x==5:
-    auto_run_recheck()
-elif x==6:
-    statistics()
-elif x==7:
-    print("检查label==2的")
-    run_recheck(2,state='2',check_type=1)
-elif x==8:
-    print("检查label==2的")
-    run_recheck(2,state='1',check_type=1)
-    #检查低概率的
-    run_recheck(0,state='1',check_type=1)
-elif x==9:
-    print("检查label==2的")
-    run_recheck(2,state='1',check_type=2)
-elif x==10:
-    print("进行搜索索引操作")
-    run_index()
-# run_mark()
-# run_text()
-# run_text_pre()
-# run_text_pre()
-# run_recheck()
-# key="4d72f13470e8dfd82f35db8rerbb4881154"
-# print(kg.check_marked(key))
+    print("""
+    1:自动标记文本 进行初步筛选
+    2:开始手动标记 对自动标记的数据进行筛查
+    3: 重新筛查之前数据(纯手动)
+    4: 自动处理已经标注的数据
+    5:自动重新筛选之前数据
+    6:统计已经标记的数据
+    7:重新筛查手动标记数据和预测不一致的
+    8:重新筛查之前数据(自动,高于阀值自动标记)
+    9:重新筛查之前数据(半自动,高于阀值自动放行)
+    10:进行搜索索引操作
+    """)
+    x = input("输入你要执行的命令:")
+    x=int(x)
+    if x==1:
+        auto_text_pre()
+    elif x==2:
+        print("运行2")
+        run_mark_pred()
+    elif x==3:
+        print("检查label==2的")
+        # run_recheck(2,state='2',check_type=1)
+        run_recheck(2,state='1',check_type=0)
+        print("检查label==1的")
+        run_recheck(1)
+    elif x==4:
+        auto_run_mark_pred()
+    elif x==5:
+        auto_run_recheck()
+    elif x==6:
+        statistics()
+    elif x==7:
+        print("检查label==2的")
+        run_recheck(2,state='2',check_type=1)
+    elif x==8:
+        print("检查label==2的")
+        run_recheck(2,state='1',check_type=1)
+        #检查低概率的
+        run_recheck(0,state='1',check_type=1)
+    elif x==9:
+        print("检查label==2的")
+        run_recheck(2,state='1',check_type=2)
+    elif x==10:
+        print("进行搜索索引操作")
+        run_index()
+    # run_mark()
+    # run_text()
+    # run_text_pre()
+    # run_text_pre()
+    # run_recheck()
+    # key="4d72f13470e8dfd82f35db8rerbb4881154"
+    # print(kg.check_marked(key))

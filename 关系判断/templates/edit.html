@@ -16,11 +16,7 @@
   <link rel="stylesheet" href="/static/css/editormd.css" />
   <!-- <link rel="shortcut icon" href="https://pandao.github.io/editor.md/favicon.ico" type="image/x-icon" /> -->
   <style>
-.btn {
-    background-color: rebeccapurple;
-    color: #fff;
-}
-
+ 
 
   </style>
 </head>
@@ -77,9 +73,59 @@
   <!-- <script src="/static/editor.md/editormd.min.js"></script> -->
   <script type="text/javascript">
 
+  function closePage() {
+
+    var userAgent = navigator.userAgent;
+
+    if (userAgent.indexOf("Firefox") != -1 || userAgent.indexOf("Chrome") != -1) {// Firefox或Chrome中关闭
+
+      window.location.href = "about: blank";
+
+    } else {
+
+      window.opener = null;
+
+      window.open("", "_self");
+
+      window.close();
+
+    }
+
+    if (WeixinJSBridge) {// 微信中关闭
+
+      WeixinJSBridge.call('closeWindow');
+
+    }
+
+  }
+
+
+
+
+
+     var willClose = true;
+      function close(){
+        // window.opener=null;
+        // window.open('','_self');
+        window.close();
+      }
+        function clickBody(){
+            willClose = false;
+
+        }
+        // setInterval(function(){
+        //   console.log("1s")
+        //     if(willClose){
+        //       window.open('#111','_self');
+        //       window.close();    
+        //         // close()
+        //     }else{
+        //         willClose = true;
+        //     }
+        // }, 1000);
 
   </script>
-  <div class="container">
+  <div class="container"  onclick="clickBody()">
     <!-- {{data}} -->
     <!-- Content here -->
 
@@ -102,6 +148,8 @@
         </p>
         <!-- <a href="#" class="card-link">Card link</a>
         <a href="#" class="card-link">Another link</a> -->
+        <button  type="button" onclick="closePage();"  class="btn btn-danger btn-lg btn-block upkg">关闭</button>
+
         <a  type="button"   href="/edit_submit/{{data['key']}}/1" class="btn btn-primary btn-lg btn-block">不是</a>
 
         <a  type="button"   href="/edit_submit/{{data['key']}}/2"  class="btn btn-success btn-lg btn-block ">是</a>

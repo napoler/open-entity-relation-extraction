@@ -50,7 +50,12 @@
     </div>
 
     <form class="form-inline my-2 my-lg-0" action="/list" method="get">
-
+      <label for="inputState">state</label>
+      <select id="inputState" name="state" class="form-control">
+        <option selected value="2">state 2...</option>
+        <option  value="1">state 1...</option>
+        <option  value="None">None...</option>
+      </select>
       <label for="inputState">label</label>
       <select id="inputState" name="label" class="form-control">
         <option selected value="2">label 2...</option>
@@ -140,7 +145,8 @@ $(document).on('click', '.upkg', function () {
           <br>
             {%- endfor %}</p>
         <p class="mb-1">{{item['sentence_mark']}}</p>
-        <a  type="button"   href="/add?s={{item['sentence']}}&kg1={{item['kg'][0]}}&kg2={{item['kg'][1]}}&kg3={{item['kg'][2]}}"  class="btn btn-light ">编辑</a>
+        <a  type="button"   href="/add?s={{item['sentence']}}&kg1={{item['kg'][0]}}&kg2={{item['kg'][1]}}&kg3={{item['kg'][2]}}"  target="new_view_window" class="btn btn-light ">添加</a>
+        <a  type="button"   href="/edit_submit/{{k}}/{{item['label']}}"  target="new_view_window" class="btn btn-light ">编辑</a>
         <!-- <small class="text-muted">Donec id elit non mi porta.</small> -->
         <button  type="button" data-value='1' data-key="{{k}}"  class="btn btn-primary btn-lg btn-block upkg">不是</button>
         <button  type="button" data-value='2' data-key="{{k}}"   class="btn btn-secondary btn-lg btn-block upkg">是</button>

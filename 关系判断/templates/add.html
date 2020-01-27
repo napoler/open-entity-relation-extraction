@@ -76,7 +76,12 @@
 <div class="pdo_tools">
  
     <form action="add_submit" method="get">
-
+     Ai预测:   {{data['ai']}}    <br>
+     概率:
+        {% for pre in data['pre'] %}
+        {{  pre[0]}}  | {{pre[1]}}
+        <br>
+          {%- endfor %}
         <div class="form-group">
             <label for="exampleFormControlTextarea1">句子</label>
             <textarea class="form-control" name='sentence' id="exampleFormControlTextarea1" rows="3">{{sentence}}</textarea>
@@ -97,7 +102,11 @@
         </div>
         <button type="submit" class="btn btn-primary">Submit</button>
       </form>
-
+      <ul class="list-group">
+          {% for kg,key,kg_status in kgs %}
+          <li class="list-group-item"><a  type="button"   href="/add?s={{sentence}}&kg1={{kg[0]}}&kg2={{kg[1]}}&kg3={{kg[2]}}"  target="new_view_window" class="btn btn-light ">{{kg}}</a><a  type="button"   href="/edit/{{key}}"  target="new_view_window" class="btn btn-light ">{{kg_status}})</a></li>
+          {% endfor %}
+      </ul>
  
 </div>
 
