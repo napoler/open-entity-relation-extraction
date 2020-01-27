@@ -5,7 +5,9 @@ import jiagu
 import tkitFile
 import tkitText
 import tkitNlp
+import tkitSearch
 
+from cocoNLP.extractor import extractor
 from tkitMarker import *
 # import tkitFile
 P=Pre()
@@ -16,20 +18,38 @@ P.args['label_file']="tkitfiles/v0.1/tag.txt"
 P.args['max_length']=50
 P.setconfig()
 
-
+#初始化提取关系词
 TNer=Pre()
-TNer.args['conf']="tkitfiles/ner/config.json"
-TNer.args['load_path']="tkitfiles/ner/pytorch_model.bin"
-TNer.args['vocab']="tkitfiles/ner/vocab.txt"
-TNer.args['label_file']="tkitfiles/ner/tag.txt"
-TNer.args['albert_path']="tkitfiles/ner"
+TNer.args['conf']="tkitfiles/ner_rel/config.json"
+TNer.args['load_path']="tkitfiles/ner_rel/pytorch_model.bin"
+TNer.args['vocab']="tkitfiles/ner_rel/vocab.txt"
+TNer.args['label_file']="tkitfiles/ner_rel/tag.txt"
+TNer.args['albert_path']="tkitfiles/ner_rel"
 TNer.args['albert_embedding']=312
 TNer.args['rnn_hidden']=400
 
-TNer.model_version='ner'
+TNer.model_version='ner_rel'
 TNer.args['max_length']=50
 TNer.setconfig()
 
+
+# 初始化提取实体
+
+Ner=Pre()
+Ner.args['conf']="tkitfiles/ner/config.json"
+Ner.args['load_path']="tkitfiles/ner/pytorch_model.bin"
+Ner.args['vocab']="tkitfiles/ner/vocab.txt"
+Ner.args['label_file']="tkitfiles/ner/tag.txt"
+Ner.args['albert_path']="tkitfiles/ner"
+Ner.args['albert_embedding']=312
+Ner.args['rnn_hidden']=400
+
+Ner.model_version='ner'
+Ner.args['max_length']=50
+Ner.setconfig()
+
+
+ex = extractor()
 from harvesttext import HarvestText
 
 import pkuseg
@@ -115,10 +135,110 @@ def ner(text):
 
 
 
+#自动处理标记单条数据
+def auto_one(item): 
+
+    # print(key)
+    # 检查知识是否是已经标记的
+    key=tt.md5(item["sentence"]+'，'.join(item['kg']))
+    if kg.check_marked(key)==True:
+        return True
+
+    # 忽略掉指代词
+    if item['kg'][0] in ["她",'它们','她们','它','我','你','我们','这','他们','牠们','大家','牠','他','人们']:
+        data=item
+        data["label"]=1
+        data['state']='1'
+        kg.mark_sentence(key,data)
+        return True
+
+    if item['kg'][0] ==item['kg'][2]:
+        data=item
+        data["label"]=1
+        data['state']='1'
+        kg.mark_sentence(key,data)
+        return True
+
+    #检查知识是否是符合知识规则
+    ckg="#u#".join(item['kg'])
+    ckg=check_kg.pre(ckg)
+    if ckg+1==1:
+        data=item
+        data["label"]=1
+        # data['state']='1'
+        kg.mark_sentence(key,data)
+        return True
+    print("--------one------------------------------------------------")
+    print("原始知识",item)
+    
+    for i,kg_word in enumerate(item['kg']):
+    # if len(item['kg'])>2:
+        #自动搜索最大匹配单词
+        # tt=tkitText.Text()
+
+        #暂时屏蔽自动修正知识
+        if i>2:
+            try:
+                c,r=tt.find_match(item['sentence'],item['kg'][i])
+                if r >50:
+                    item['kg'][i]=c
+                    print("自动修正知识",c)
+            except:
+                pass
+    #展现句子
+    s=item['sentence']
+    for w in item['kg']:
+        s=s.replace(w,"<<█"+w+"█>>")
+    pprint(item)
+    print("~~~~~"*10)
+    print('句子:',s)
+    print("~~~~~"*1)
+    # times = ex.extract_time(item['sentence'])
+    # print("时间",times)
+    print("~~~~~"*3)
+    print('知识:',item['kg'])
+    print("~~~~~"*3)
+    #检查是否是合理的知识
+    tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
+    p=tclass.pre(tkg)
+    softmax=tclass.softmax()
+    print("------------------")
+    print("分类","|",'概率')
+    for ck,rank in zip([1,2],softmax):
+        print(ck,"|",rank)
+        if ck == 1 and rank >=0.8:
+            data=item
+            data["label"]=1
+            data['state']='1'
+            kg.mark_sentence(key,data)
+            print("分值过低自动设为不合理")
+            return True
+        elif ck == 2 and rank >=0.8:
+            data=item
+            data["label"]=2
+            data['state']='1'
+            kg.mark_sentence(key,data)
+            print("自动设为合理")
+            return   True      
+        else:
+            print("不确定进入手动待选")
+    print("保存")
+    data=item
+    data["label"]=0
+    # data['state']='0'
+    kg.mark_sentence(key,data)
+    print("------------------")
+
+
+    print("--------oneEnd------------------------------------------------")
+    # i=i+1
+    # exit()
 
 
 
 
+
+#处理标记单条数据
 def one(item): 
 
     # print(key)
@@ -153,32 +273,98 @@ def one(item):
 
     # 忽略掉指代词
     if item['kg'][0] in ["她",'它们','她们','它','我','你','我们','这','他们','牠们','大家','牠','他','人们']:
+        data=item
+        data["label"]=1
+        data['state']='1'
+        kg.mark_sentence(key,data)
+        return
+
+    if item['kg'][0] ==item['kg'][2]:
+        data=item
+        data["label"]=1
+        data['state']='1'
+        kg.mark_sentence(key,data)
         return
 
     #检查知识是否是符合知识规则
     ckg="#u#".join(item['kg'])
     ckg=check_kg.pre(ckg)
     if ckg+1==1:
+        data=item
+        data["label"]=1
+        kg.mark_sentence(key,data)
         return
 
     print("--------one------------------------------------------------")
 
 
-
-    tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
-    p=tclass.pre(tkg)
-
+    print("原始知识",item)
     
+    for i,kg_word in enumerate(item['kg']):
+    # if len(item['kg'])>2:
+        #自动搜索最大匹配单词
+        # tt=tkitText.Text()
+
+        #暂时屏蔽自动修正知识
+        if i>2:
+            try:
+                c,r=tt.find_match(item['sentence'],item['kg'][i])
+                if r >50:
+                    item['kg'][i]=c
+                    print("自动修正知识",c)
+            except:
+                pass
     #展现句子
     s=item['sentence']
     for w in item['kg']:
         s=s.replace(w,"<<█"+w+"█>>")
     pprint(item)
+    print("~~~~~"*10)
     print('句子:',s)
+    print("~~~~~"*1)
+    # times = ex.extract_time(item['sentence'])
+    # print("时间",times)
+    try:
+        locations = ex.extract_locations(item['sentence'])
+        print("地点",locations)
+        name = ex.extract_name(item['sentence'])
+        print("人名",name)
+    except:
+        pass
+    print("~~~~~"*1)
+    print("~~~~~"*3)
     print('知识:',item['kg'])
-    print("Ai判断:",ckg+1)
+    print("~~~~~"*3)
+
+    #检查是否是合理的知识
+    tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
+    p=tclass.pre(tkg)
+    softmax=tclass.softmax()
+    print("分类","|",'概率')
+    for ck,rank in zip([1,2],softmax):
+        print(ck,"|",rank)
+        if ck == 1 and rank >=0.85:
+            data=item
+            data["label"]=1
+            data['state']='1'
+            kg.mark_sentence(key,data)
+            print("分值过低自动设为不合理")
+            return
+        elif ck == 2 and rank >=0.85:
+            data=item
+            data["label"]=2
+            data['state']='1'
+            kg.mark_sentence(key,data)
+            print("自动设为合理")
+            return           
+    print("------------")
+
+    # print(ck,round(rank, 5) )
+    print("Ai判断(提取匹配):",p+1)   
+    print("Ai判断(kg合理度):",ckg+1)
 
     data=item
+    print("~~~~~"*10)
     print("1-2:使用tkitMarker预测 5:进入手动修正")
     x = input("输入1(No)或者2(Yes) 默认1:")
     # print
@@ -190,25 +376,42 @@ def one(item):
     if x==1:
         print("选择No")
         data["label"]=x
+        data['state']='2'
     elif x==2:
         print("选择Yes")
-        tt.add_words([item['kg'][0]])
+        tt.add_words([item['kg'][0]],ht_model="tkitfiles/ht.model")
         data=item
         data["label"]=x
+        data['state']='2'
 
     elif x==5:
         print("手动修正")
-        x = input("描述:")
+        x = input("实体:")
         data=item
         if len(x) > 0:
             data["label"]=2
+            data['kg'][0]=x
+            data['state']='2'
+        print("实体",data['kg'][0])
+        x = input("关系:")
+        data=item
+        if len(x) > 0:
+            data["label"]=2
+            data['kg'][1]=x
+            data['state']='2'
+        print("关系",data['kg'][1])
+        x = input("描述:")
+        if len(x) > 0:
+            data["label"]=2
+            data['state']='2'
             print("手动标记")
             if len(data['kg']) >2:
                 data['kg'][2]=x
                 pass
             else:
                 data['kg'].append(x)
-            tt.add_words([item['kg'][0]])
+            print("描述",data['kg'][2])
+            tt.add_words([item['kg'][0]],ht_model="tkitfiles/ht.model")
             print("选择Yes")
             key=tt.md5(item["sentence"]+'，'.join(item['kg']))
         else:
@@ -216,7 +419,10 @@ def one(item):
             data["label"]=1
             # return
     print(data)
-    kg.mark_sentence(key,data)
+    try:
+        kg.mark_sentence(key,data)
+    except:
+        pass
 
     print("--------oneEnd------------------------------------------------")
     # i=i+1
@@ -229,7 +435,10 @@ ht0 = HarvestText()
 tfile=tkitFile.File()
 tt=tkitText.Text()
 # tt=tkitText.Text()
-tt.load_ht(ht_model="tkitfiles/ht.model")
+# tt.load_ht(ht_model="tkitfiles/ht.model")
+
+tt.load_ht()
+# tt.typed_words(ht_model="tkitfiles/ht.model")
 i=0
 tclass=classify(model_name_or_path='tkitfiles/checkkg')
 #检查是不是知识
@@ -291,11 +500,37 @@ def run_mark_pred():
     """
     i=0
     for key,item in kg.get_unmarked_auto_sentence():
-        print("#################标记数据######")
-        print(item)
+        print("")
+        print("")
+        print("")
+        print("")
+        print("")
+        print(i,"#################标记数据######")
+        i=i+1
+        # print(item)
         one(item)
         kg.tdb.load("kg_auto_sentence")
         kg.tdb.delete(key)
+
+def auto_run_mark_pred():
+    """
+    对自动标记的数据进行筛查
+    """
+    i=0
+    for key,item in kg.get_unmarked_auto_sentence():
+        print("\n"*2)
+
+        print(i,"#################标记数据######")
+        
+        # print(item)
+        #运行自动标注
+        run_re=auto_one(item)
+        if run_re==True:
+            kg.tdb.load("kg_auto_sentence")
+            kg.tdb.delete(key)
+            i=i+1
+            print("标注成功",i)
+
 def get_w_v(text):
   seg = pkuseg.pkuseg(postag=True)           # 以默认配置加载模型
   text = seg.cut(text)  # 进行分词
@@ -331,44 +566,73 @@ def get_w_v(text):
 # print(get_w_v(text))
 
 def ner_plus(text):
-    ner_list=ner(text)
-    ner_s=tt.named_entity_recognition(text)
-
-    words = jiagu.seg(text) # 分词
-    # print(words)
-
-    # pos = jiagu.pos(words) # 词性标注
-    # print(pos)
-
-    # ner_jiagu = jiagu.ner(words) # 命名实体识别
-    # print(ner_jiagu)
-    # ner_list=[]
-    # print("提取实体")
-    for key in ner_s:
-        # print(key)
-        if key in ner_list:
-            pass
-        else:
-            ner_list.append(key)
+    # result=[]
+    # ner_list=ner(text)
+    # ner_s=tt.named_entity_recognition(text)
+    # ws,vs=get_w_v(text)
     
-    # for key in ner_jiagu:
-    #     # print(key)
-    #     if key in ner_list:
-    #         pass
-    #     else:
-    #         ner_list.append(key)
-    return ner_list
+
+
+    # try:
+    #     times = ex.extract_time(text)
+    #     print("时间",times)
+    #     locations = ex.extract_locations(text)
+    #     print("地点",locations)
+    #     name = ex.extract_name(text)
+    #     print("人名",name)
+    #     if locations!=None:
+            
+    #         ner_list=ner_list+locations
+    #     if name!=None and type(name)==str:
+    #         ner_s=ner_list+[name]
+    #     if type(name)==list:
+    #         ner_s=ner_list+name
+
+    #     if times!=None:
+    #         try:
+    #             ner_list=ner_list+times
+    #         except:
+    #             pass
+    # except:
+    #     pass
+    # # words = jiagu.seg(text) # 分词
+    # # print(words)
+
+    # # pos = jiagu.pos(words) # 词性标注
+    # # print(pos)
+
+    # # ner_jiagu = jiagu.ner(words) # 命名实体识别
+    # # print(ner_jiagu)
+    # # ner_list=[]
+    # # print("提取实体")
+    # for key in ner_s:
+    #     ner_list.append(key)
+    # # print(ner_s.keys())
+    # # ner_list=ner_list+ ws
+    # ner_list=ner_list
+    # # for key in ner_list:
+    # #     result.append(key)
+    # return list(set(ner_list))
+    
+    result=[]
+    ner_result=Ner.pre([text])
+    for ner in ner_result[0][1]:
+        result.append(ner['words'])
+        
+    return result
+
 def pre_kg(text):
     """
     自动预测补全信息
     只提取知识
     """
+    print("句子",text)
     ner_list=ner_plus(text)
 
     kgs=[] #返回提取的知识列表
     for n in ner_list:
         vs=get_Relationship(text,n)
-        # print("动词",n,vs)
+        print("关系词",n,vs)
         for v in vs:
             item={
                 'sentence':text,
@@ -387,150 +651,54 @@ def pre_kg(text):
                 #添加kg
                 kgs.append(item['kg'])
 
-                # if item['kg'][0]==item['kg'][2]:
-                #     key=tt.md5(item["sentence"]+'，'.join(item['kg']))
-                #     data=item
-                #     data["label"]=1
-                #     print("保存为数据",key,data)
-                #     kg.mark_sentence(key,data)
-                #     # return
-                #     kgs.append(item['kg'])
-                #     continue
-                
-                # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
-                # if kg.check_marked(key)==True:
-                #     # print("已经标记")
-                #     kgs.append(item['kg'])
-                #     # return
-                #     continue    
-                # else:
-                #     pass
-                # print("--------------------------------------------------------")
-                # tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
-                # p=tclass.pre(tkg)
-                # ckg="#u#".join(item['kg'])
-                # ckg=check_kg.pre(ckg)
-
-                # if ckg+1==1:
-                #     # return
-                #     kgs.append(item['kg'])
-                #     continue
-            #     print("Ai判断:",ckg+1)
-
-            #     print("1-2:使用tkitMarker预测 输入3进入手动编辑模式")
-            #     x = input("输入1(No)或者2(Yes) 默认1:")
-            #     # print
-            #     try:
-            #         x= int(x)
-            #     except:
-            #         pass
-            #         x=1
-            #     if x==1:
-            #         print("选择No")
-
-                    
-            #         data=item
-            #         data["label"]=x
-            #     elif x==2:
-            #         print("选择Yes")
-            #         tt.add_words([item['kg'][0]])
-            #         data=item
-            #         data["label"]=x
-            #     elif x==3:
-            #         print("手动修正")
-            #         x = input("描述:")
-            #         data=item
-            #         if len(x) > 0:
-            #             data["label"]=2
-            #             print("手动标记")
-            #             if len(data['kg']) >2:
-            #                 data['kg'][2]=x
-            #                 pass
-            #             else:
-            #                 data['kg'].append(x)
-            #             tt.add_words([item['kg'][0]])
-            #             print("选择Yes")
-            #             key=tt.md5(item["sentence"]+'，'.join(item['kg']))
-            #         else:
-            #             # 无法标记设为拉圾
-            #             data["label"]=1
-            #             # return
         
-            # else:
-            #     data=item
-            #     data["label"]=1
-            #     # print("--------------------------------------------------------")
-            #     # print(s)
-            #     # print(item['kg'])
-
-            #     # print("没有预测结果请手动输入")
-            #     # x = input("描述:")
-            #     # data=item
-            #     # if len(x) > 0:
-            #     #     data["label"]=2
-            #     #     print("手动标记")
-            #     #     print("选择Yes")
-            #     #     key=tt.md5(item["sentence"]+'，'.join(item['kg']))
-            #     # else:
-            #     #     # 无法标记设为拉圾
-            #     #     data["label"]=1
-            #     #     # return
-
-
-        
-
-            # print("保存为数据",key,data)
-            # kg.mark_sentence(key,data)
-            # key=tt.md5(item["sentence"])
-            # kg.mark_sentence(key,data)
-                # i=i+1
-                # exit()
     return kgs
 
-
+#自动分析文本 预先预测出可能的知识
 def auto_text_pre(path="/mnt/data/dev/github/数据处理工具/tool_data_processing/data/text"):
     """
     使用模型推断描述 来标记数据
     """
     i=0
+    auto_i=0
     for f in tfile.file_List(path):
+        print("file",f)
         t=tfile.open_file(f)
         for s in tt.sentence_segmentation_v1(t):
         # for key,item in kg.get_unmarked():
+            #替换掉中文标点
+            s=tt.filterPunctuation(s)
 
             # 检查句子是否是标记过的
             key=tt.md5(s)
             if kg.check_marked(key)==True:
-                print("已经标记句子")
+                # print("已经标记句子")
                 continue
+            print("\n\n\n\n")
+            print("发现数据:",i,"auto成功的数据:",auto_i,"#################标记数据######")
 
-            print(i,"#################标记数据######")
-
+            # 使用多种方案获取知识
             kgs=pre_kg(s)
-            print('pre的Kgs',kgs)
-
-
-            #判断是不是宠物
-            # if check_pet(item['sentence'])==0:
-            #     continue
-
-            # print("ht知识：",ht0.triple_extraction(sent=item['sentence']))
-            ht_kg=tt.ht.triple_extraction(sent=s)
-            # print(ht_kg)
-            # ht_kg=ht0.triple_extraction(sent=s)
-            # print(ht_kg)
-            jiagu_kg = jiagu.knowledge(s)
-            # c_kg=[item['kg']]
-            all_kg=ht_kg+jiagu_kg
-            all_kg=ht_kg
-            # end_kg=[]
-            # print("所有知识:",all_kg)
+            # ht_kg=tt.ht.triple_extraction(sent=s)
+            # jiagu_kg = jiagu.knowledge(s)
+            # all_kg=ht_kg+jiagu_kg+kgs
+            all_kg=kgs
             ner_list=ner_plus(s)
             for k in all_kg:
-
-                if k in kgs or k[0] not in ner_list:
+                # 限制只提取实体
+                # if k in kgs or k[0] not in ner_list:
+                #     continue
+                if  k[0] not in ner_list:
                     continue
-                    
+                # print("\n\n")
+                # #检查是否是合理的知识
+                # tkg="[kg] "+",".join(k)+" [/kg] "+s
+                # print(tkg)
+                # p=tclass.pre(tkg)
+                # softmax=tclass.softmax()
+                # print('分类','得分')
+                # for ck,rank in zip([1,2],softmax):
+                #     print(ck,rank)
                 new={
                     'sentence':s,
                     'kg':k
@@ -541,10 +709,34 @@ def auto_text_pre(path="/mnt/data/dev/github/数据处理工具/tool_data_proces
                 kg.auto_sentence(key,new)
                 print('自动提取',i,new)
 
+                #运行自动标注
+                run_re=auto_one(new)
+                if run_re==True:
+                    kg.tdb.load("kg_auto_sentence")
+                    kg.tdb.delete(key)
+                    auto_i=auto_i+1
+                # if  softmax[0] >=0.5:
+                #     print("分值过低 忽略")
+                #     continue
+                # else:
+                #     new={
+                #         'sentence':s,
+                #         'kg':k
+                #     }
+                #     i=i+1
+                #     #自动提取知识
+                #     key=tt.md5(new['sentence']+",".join(new['kg']))
+                #     kg.auto_sentence(key,new)
+                #     print('自动提取',i,new)
 
-            #     one(new)
-            #     kgs.append(k)
-            # print('本次已经标记的Kgs',kgs)
+                #     #运行自动标注
+                #     run_re=auto_one(new)
+                #     if run_re==True:
+                #         kg.tdb.load("kg_auto_sentence")
+                #         kg.tdb.delete(key)
+                #         auto_i=auto_i+1
+
+                #     continue
 
             #将标记过的句子记录下
             key=tt.md5(s)
@@ -601,37 +793,186 @@ def get_Relationship(text,ner):
     # print("预测的关系词::",result)
     words_list=[]
     for item in result[0][1]:
-        if item['type']=="关系" and item['type'] not in words_list:
+        if item['type']=="关系":
             words_list.append(item['words'])
-    return words_list
+    return list(set(words_list))
              
-
-def run_recheck():
+def statistics():
     """
-    重新标记之前的数据
+    统计数据
+    """
+    i_m=0
+    kg_none=0
+    state_1=0
+    state_2=0
+    state_2_2=0
+    other=0
+    for k,item in kg.recheck_all():
+        i_m=i_m+1
+        if item.get('kg')==None or len(item.get('kg'))==0:
+            kg_none=kg_none+1
+        elif  item.get('kg')!=None and item.get('state')=='1':
+            state_1=state_1+1
+        elif item.get('kg')!=None and item.get('state')=='2':
+            state_2=state_2+1
+            if item['label']=='2' or item['label']==2:
+                state_2_2=state_2_2+1
+
+        else:
+            other=other+1
+
+    print("++++++++统计数据++++++++++++")
+    print('kg_none',kg_none)
+    print("state_1",state_1)
+    print("state_2",state_2)
+    print("state_2_2",state_2_2)
+    print("other",other)
+    print("i_m",i_m)
+
+
+
+
+def auto_run_recheck():
+    """
+    自动重新标记之前的数据
     
     """
-
+    i_m=0
     for k,item in kg.recheck_all():
-        if item.get("state")==None:
-            print("###########################################")
-            # print(k,item)
-            print("-------------------------------------------------------------------")
-            tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
-            # print(tkg)
+        i_m=i_m+1
         
+        if item.get("state")==None or item.get("state")=='1':
+            if item.get('kg')==None:
+                pass
+            elif len(item.get('kg'))==0:
+                item['state']='3'
+                kg.mark_sentence(k,item)
+                continue
+            try:
+                auto_one(item)
+            except:
+                pass
+            print("已标记:",i_m)
+            item['state']='1'
+            # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
+            kg.mark_sentence(k,item)
+            print(item)
+def run_recheck(label=2,state='1',check_type=0):
+    """
+    重新标记之前的数据
+    这里进行手动检查
+    check_type=0 标记所有
+    check_type=1 只筛选标记和预测不一样的数据 并且自动跳过
+    check_type=2 只筛选标记和预测不一样的数据  不自动跳过
+
+    state='1' 0 不确定数据状态 1 自动筛选机率较高 2 最终状态
+    
+    """
+    i_m=0
+    print("""请输入概率阀值(0-1)""")
+    limit = float(input("阀值:"))
+    if 0<limit <1:
+        print("阀值错误 退出")
+    else:
+        limit=0.95
+    for k,item in kg.recheck_all():
+        if (item.get("state")==None  and item.get("label")==label) or (item.get("state")==state and item.get("label")==label):
+        # if item.get("state")==None or item.get("state")==1:
+            if item.get('kg')==None:
+                item['state']='3'
+                kg.mark_sentence(k,item)
+                continue
+                pass
+            elif len(item.get('kg'))==0:
+                item['state']='3'
+                kg.mark_sentence(k,item)
+                continue
+          
+            print("\n"*3)
+            print("已标记:",i_m)
+            #自动修正知识
+            for i,kg_word in enumerate( item['kg']):
+            # if len(item['kg'])>2:
+                #自动搜索最大匹配单词
+                # tt=tkitText.Text()
+
+                #暂时屏蔽自动修正知识
+                if i>2:
+                    try:
+                        c,r=tt.find_match(item['sentence'],item['kg'][i])
+                        if r >50:
+                            item['kg'][i]=c
+                            print("自动修正知识",c)
+                    except:
+                        pass
+            print("###########################################")
+            print(k,item)
+            print("-------------------------------------------------------------------")
+
+            #检查是否是合理的知识
+            tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
+            p=tclass.pre(tkg)
+            softmax=tclass.softmax()
+            print("分类","|",'概率')
+            for ck,rank in zip([1,2],softmax):
+                print(ck,"|",rank)
+
+
             s=item['sentence']
             for w in item['kg']:
                 s=s.replace(w,"<<█"+w+"█>>")
+
+            # p=tclass.pre(tkg)
+            p=p+1
             print('句子:',s)
             print("知识:",item['kg'])
-            p=tclass.pre(tkg)
-            p=p+1
-            print("手动标记",item['label'])
+            print("原来标记label:",item['label'])
+            print("Ai标记label:",p)
             if item['label']==p:
                 print("Ai判断一致 建议保留")
+                if check_type==1 and softmax[1]>=limit:
+                    item['state']='2'
+                    item["label"]=p
+                    kg.mark_sentence(k,item)
+                    i_m=i_m+1 
+                    continue
+                elif check_type==1 and softmax[0]>=limit:
+                    item['state']='2'
+                    item["label"]=p
+                    kg.mark_sentence(k,item)
+                    i_m=i_m+1 
+                    continue
+                elif check_type==2 and softmax[1]>=limit:
+                    item['state']='2'
+                    item["label"]=p
+                    kg.mark_sentence(k,item)
+                    i_m=i_m+1 
+                    continue
+                elif check_type==2 and softmax[0]>=limit:
+                    item['state']='2'
+                    item["label"]=p
+                    kg.mark_sentence(k,item)
+                    i_m=i_m+1 
+                    continue
+            elif p==1:
+                #跳过ai判断不是的
+                # 自动标记ai判断为不是知识的数据
+                if  softmax[0]>=limit:
+                    item['state']='2'
+                    item["label"]=p
+                    kg.mark_sentence(k,item)
+                    i_m=i_m+1         
+                continue
             else:
-                print("Ai判别不一致 请人工判别")
+                print("Ai判别不一致")
+                # if check_type==1 and softmax[0]>=limit:
+                #     item['state']='2'
+                #     item["label"]=p
+                #     kg.mark_sentence(k,item)
+                #     i_m=i_m+1 
+                #     continue
+            if check_type==1:
+                continue
             x = input("输入1(No)或者2(Yes) Ai默认"+str(p)+":")
             # print
             try:
@@ -641,21 +982,67 @@ def run_recheck():
                 x=p
             if x==1:
                 print("选择No")
-                kg.tdb.delete(k)
+                # kg.tdb.delete(k)
+                item['state']='2'
+                item["label"]=1
+                kg.mark_sentence(k,item)
+                i_m=i_m+1 
+                continue
+
             else:
                 print("选择Yes")
-            data=item
-            data["label"]=x
-            data['state']='1'
-            # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
-            kg.mark_sentence(k,data)
+                item["label"]=2
+                item['state']='2'
+            kg.mark_sentence(k,item)
+            i_m=i_m+1 
+            print(item)
+
+
+
+def run_index():
+    ss=tkitSearch.Search()
+    # ss.init_search()
+    labels=[1,2]
+    states=['1','2']
+    i=0
+    for k,item in kg.recheck_all():
+        if (item.get("state")==None  and item.get("label")  in labels) or (item.get("state") in states and item.get("label") in labels):
+            # print(item)
+            if i%1000==0:
+                print(i)
+            i=i+1
+            data=[{'title':",".join(item.get("kg")),'content':item.get("sentence"),'path':k}]
+            # print(data)
+            ss.add(data)
+        
+def index_one(k,item):
+    """
+    添加一个索引
+    """
+    ss=tkitSearch.Search()
+    data=[{'title':",".join(item.get("kg")),'content':item.get("sentence"),'path':k}]
+    # print(data)
+    ss.add(data)   
+# s=Search()
+# # s.init_search()
+# data=[{'title':'www','content':'223这是我们增加搜索的s第武器篇文档，哈哈 ','path':'https://www.osgeo.cn/whoosh/batch.html'}]
+# s.add(data)
+# print(s.find('宠物'))
+# # print(s.find('文档'))
+
 
 
 print("""
 1:自动标记文本 进行初步筛选
 2:开始手动标记 对自动标记的数据进行筛查
-
-
+3: 重新筛查之前数据(纯手动)
+4: 自动处理已经标注的数据
+5:自动重新筛选之前数据
+6:统计已经标记的数据
+7:重新筛查手动标记数据和预测不一致的
+8:重新筛查之前数据(自动,高于阀值自动标记)
+9:重新筛查之前数据(半自动,高于阀值自动放行)
+10:进行搜索索引操作
 """)
 x = input("输入你要执行的命令:")
 x=int(x)
@@ -664,7 +1051,32 @@ if x==1:
 elif x==2:
     print("运行2")
     run_mark_pred()
-
+elif x==3:
+    print("检查label==2的")
+    # run_recheck(2,state='2',check_type=1)
+    run_recheck(2,state='1',check_type=0)
+    print("检查label==1的")
+    run_recheck(1)
+elif x==4:
+    auto_run_mark_pred()
+elif x==5:
+    auto_run_recheck()
+elif x==6:
+    statistics()
+elif x==7:
+    print("检查label==2的")
+    run_recheck(2,state='2',check_type=1)
+elif x==8:
+    print("检查label==2的")
+    run_recheck(2,state='1',check_type=1)
+    #检查低概率的
+    run_recheck(0,state='1',check_type=1)
+elif x==9:
+    print("检查label==2的")
+    run_recheck(2,state='1',check_type=2)
+elif x==10:
+    print("进行搜索索引操作")
+    run_index()
 # run_mark()
 # run_text()
 # run_text_pre()

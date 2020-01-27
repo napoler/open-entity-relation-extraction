@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="utf-8" />
+  <!-- Required meta tags -->
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+  <title>Ai写作助手</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/editormd.css" />
+  <!-- <link rel="shortcut icon" href="https://pandao.github.io/editor.md/favicon.ico" type="image/x-icon" /> -->
+  <style>
+.btn {
+    background-color: rebeccapurple;
+    color: #fff;
+}
+
+
+  </style>
+</head>
+
+<body>
+  <div id="layout">
+    <header>
+      <h1>Ai  数据构建助手</h1>
+    </header>
+ 
+ 
+  </div>
+  <script src="/static/js/jquery.min.js"></script>
+  <!-- <script src="/static/editor.md/editormd.min.js"></script> -->
+  <script type="text/javascript">
+
+
+  </script>
+  <div class="container">
+    <!-- {{data}} -->
+    <!-- Content here -->
+
+    <div class="card" style="">
+      <div class="card-body">
+        <h5 class="card-title">    {{data['kg']}}</h5>
+        <h6 class="card-subtitle mb-2 text-muted">  label:  {{data['label']}}</h6>
+        <p class="card-text" style="font-size: 1.4em;">
+          预测概率    <br>
+          {% for pre in data['pre'] %}
+          {{  pre[0]}}  | {{pre[1]}}
+          <br>
+            {%- endfor %}
+            <br>
+            <br>
+            <br>
+          {{data['sentence']}}
+        
+        </p>
+        <!-- <a href="#" class="card-link">Card link</a>
+        <a href="#" class="card-link">Another link</a> -->
+        <a  type="button"   href="/edit_submit/{{data['key']}}/1" class="btn btn-primary btn-lg btn-block">不是</a>
+
+        <a  type="button"   href="/edit_submit/{{data['key']}}/2"  class="btn btn-success btn-lg btn-block ">是</a>
+
+        <a  type="button"   href="/list/2/{{data['key']}}"  class="btn btn-light btn-lg btn-block">返回列表</a>
+      </div>
+    </div>
+
+ 
+
+
+  </div>
+ 
+
+</body>
+
+
+<!-- Optional JavaScript -->
+<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+<!-- <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+  integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+  integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+</html>

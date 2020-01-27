@@ -1,8 +1,13 @@
 import tkitFile
 import tkitDb
 import tkitText
-from tqdm import tqdm
+import tkitNlp
+import tkitSearch
 
+from tqdm import tqdm
+import os
+import shutil
+import json
 class KgDatabase:
     def __init__(self):
         tkitFile.File().mkdir("../tdata")
@@ -42,6 +47,14 @@ class KgDatabase:
         """
         self.tdb.load("kg_auto_sentence")
         self.tdb.put_data([(key,data)])
+    def index_one(self,k,item):
+        """
+        添加一个索引
+        """
+        ss=tkitSearch.Search()
+        data=[{'title':",".join(item.get("kg")),'content':item.get("sentence"),'path':k}]
+        # print(data)
+        ss.add(data) 
     def mark_sentence(self,key,data):
         """
         将json版本保存到数据
@@ -55,6 +68,7 @@ class KgDatabase:
         self.tdb.load("kg_mark")
         # tt=tkitText.Text()
         # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
+        self.index_one(key,data)
         self.tdb.put_data([(key,data)])
     def get_unmarked_auto_sentence(self):
         """
@@ -120,33 +134,85 @@ class KgDatabase:
         else:
             return True
 
+    def json_remove_duplicates(self,json_file):
+        print("尝试移除重复数据")
+        origin_json=tkitFile.Json(json_file)
+        temp=tkitFile.Json(json_file+".tmp.json")
+        tt=tkitText.Text()
+        temp_keys=[]
+        data=[]
+        num_duplicates=0
+        for i, item in enumerate(origin_json.auto_load()):
+
+            # if i%10000==0:
+                # print("~~~~"*10)
+                # print('已经处理',i)
+                # temp.save(data)
+                # data=[]
+            # key=tt.md5(str(item))
+            # if key in temp_keys:
+            #     # print("重复数据",item)
+            #     num_duplicates=num_duplicates+1
+            #     pass
+            # else:
+            #     temp_keys.append(key)
+            #     data.append(item)
+            data.append(json.dumps(item))
+        new=list(set(data))
+        print("原始长度",len(data))
+        new_json=[]
+        for item in new:
+            new_json.append(json.loads(item))
+        print("新长度",len(new_json))
+        temp.save(new_json)
+        print("移除重复内容",num_duplicates)
+        #覆盖之前文件
+        shutil.move(json_file+".tmp.json",json_file)
+
 
 
     def save_to_json(self):
-        kgjson_t=tkitFile.Json("../tdata/train.json")
-        kgjson_d=tkitFile.Json("../tdata/dev.json")
-        kgjson_l=tkitFile.Json("../tdata/labels.json")
-        self.tdb.load("kg_mark")
+        """
+        可以用于测试知识是否是合理的
+        """
+        kgjson_t=tkitFile.Json("../tdata/kg_check/train.json")
+        kgjson_d=tkitFile.Json("../tdata/kg_check/dev.json")
+        kgjson_l=tkitFile.Json("../tdata/kg_check/labels.json")
+        # self.tdb.load("kg_mark")
         data=[]
+        i=0
+        n=0
+        self.tdb.load("kg_mark")
+        tt=tkitText.Text()
+        i=-1
         for k,v in self.tdb.get_all():
-            try: 
-                it=self.tdb.str_dict(v)
-                one={}
-                one['sentence']=" [kg] "+",".join(it['kg'])+" [/kg] "+it['sentence']
-                one['label']=it['label']-1
-                if int(one['label']) in [0,1] and len(it['kg'])==3:
-                   data.append(one)
-                else:
-                    print(it)
-            except:
-                self.tdb.load("kg")
-                continue
+            i=i+1
+            # print(v)
+            if v==None:
+                n += 1
+            else:
+                try: 
+                    it=self.tdb.str_dict(v)
+                    one={}
+                    one['sentence']=" [kg] "+",".join(it['kg'])+" [/kg] "+it['sentence']
+                    one['label']=it['label']-1
+                    
+                    if int(one['label']) in [0,1] and len(it['kg'])==3:
+                        data.append(one)
+                    else:
+                        # print(it)
+                        pass
+                except:
+                    # self.tdb.load("kg")
+                    continue
         c=int(len(data)*0.85)
+        print("总数据",len(data),i,n)
         kgjson_t.save(data[:c])
         kgjson_d.save(data[c:])
-        # labels=[{"label": 0, "sentence": "Bad"},{"label": 1, "sentence": "Good"}]
-        # kgjson_l.save(labels)
-        print("已经将数据导出到 ../tdata")
+        #自动处理重复标记问题
+        self.json_remove_duplicates("../tdata/kg_check/train.json")
+        self.json_remove_duplicates("../tdata/kg_check/dev.json")
+        print("已经将数据导出到 ../tdata/kg_check")
         
     def auto_label(self,label,new):
         if label=="O":
@@ -199,8 +265,11 @@ class KgDatabase:
         for k,v in self.tdb.get_all():
             try: 
                 it=self.tdb.str_dict(v)
-                if it['label']-1!=1:
+                if it['label']-1!=1 or it['state']!='2':
                     continue
+                else:
+                    # print("状态为2")
+                    pass
             except:
                 # self.tdb.load("kg")
                 continue
@@ -226,7 +295,7 @@ class KgDatabase:
                     pass
             # print(kgs)
             one={'sentence':it['sentence'],'kgs':kgs}
-            print(one)
+            # print(one)
             self.tdb.put(key,one)
             self.tdb.load("kg_mark")
             i=i+1
@@ -240,10 +309,10 @@ class KgDatabase:
                 print("删除失败")
 
    
-    def save_to_json_ner(self):
+    def save_to_json_ner_rel(self):
         tkitFile.File().mkdir("../tdata/ner")
-        kgjson_t=tkitFile.Json("../tdata/ner/train.json")
-        kgjson_d=tkitFile.Json("../tdata/ner/dev.json")
+        kgjson_t=tkitFile.Json("../tdata/ner_rel/train.json")
+        kgjson_d=tkitFile.Json("../tdata/ner_rel/dev.json")
         # kgjson_l=tkitFile.Json("../tdata/labels.json")
         self.tdb.load("kg_mark_unique_data")
         data=[]
@@ -298,8 +367,74 @@ class KgDatabase:
         kgjson_t.save(data[:c])
         kgjson_d.save(data[c:])
         print("总共生成数据",len(data))
-
-        print("已经将数据导出到 ../tdata")
+        #自动处理重复标记问题
+        self.json_remove_duplicates("../tdata/ner_rel/train.json")
+        self.json_remove_duplicates("../tdata/ner_rel/dev.json")
+        print("已经将数据导出到 ../tdata/ner_rel")
+  
+    def save_to_json_ner(self):
+        tkitFile.File().mkdir("../tdata/onlyner")
+        kgjson_t=tkitFile.Json("../tdata/onlyner/train.json")
+        kgjson_d=tkitFile.Json("../tdata/onlyner/dev.json")
+        # kgjson_l=tkitFile.Json("../tdata/labels.json")
+        self.tdb.load("kg_mark_unique_data")
+        data=[]
+        all_data_id=[]
+        nlp_plus=tkitNlp.Plus()
+        nlp_plus.load_tlp()
+        flags={}
+        for k,v in self.tdb.get_all():
+            # print("k",k)
+            try: 
+                it=self.tdb.str_dict(v)
+                text=it['sentence']
+                # print("it",it)
+                label= ["O"]*len(text)
+                ner={}
+                for one in it['kgs']:
+                    # print(one)
+                    # label,s1=self.mark_word_label(it['sentence'],label,one[0],"实体")
+                    # label,s1=self.mark_word_label(it['sentence'],label,one[1],"关系")
+                    try:
+                        if one[1] not in ner[one[0]]:
+                            ner[one[0]].append(one[1])
+                    except:
+                        ner[one[0]]=[one[1]]
+                
+                ner_list =[tmp for  tmp in ner.keys() ]
+                # print(ner_list)
+                # fner =[word for word,flag in nlp_plus.ner(text)]
+                fner=[]
+                for word,flag in nlp_plus.ner(text):
+                    flags[flag]=0
+                    fner.append(word)
+                ner_list=list(set(ner_list+fner))
+                ner_list = sorted(ner_list,key = lambda i:len(i),reverse=False)
+                # print(ner_list)
+                s=0
+                for nr in ner_list:
+                
+                    # print(nr)
+                    label,s1=nlp_plus.mark_word_label(text,label,nr,"实体")
+                    if s1>=0:
+                        s=s+1
+                if s>0:
+                    one={'text':list(text),'label':label}
+                    data.append(one)
+                    # print(one)
+                    # print(flags)
+            except:
+                pass
+        nlp_plus.release()
+ 
+        c=int(len(data)*0.85)
+        kgjson_t.save(data[:c])
+        kgjson_d.save(data[c:])
+        print("总共生成数据",len(data))
+        #自动处理重复标记问题
+        self.json_remove_duplicates("../tdata/onlyner/train.json")
+        self.json_remove_duplicates("../tdata/onlyner/dev.json")
+        print("已经将数据导出到 .../tdata/onlyner/")
    
     def save_to_json_kg(self):
         """
@@ -340,7 +475,10 @@ class KgDatabase:
         kgjson_t.save(data[:c])
         kgjson_d.save(data[c:])
         print("总共生成数据",len(data))
-        print("已经将数据导出到 ../tdata")
+        #自动处理重复标记问题
+        self.json_remove_duplicates("../tdata/kg/train.json")
+        self.json_remove_duplicates("../tdata/kg/dev.json")
+        print("已经将数据导出到 ../tdata/kg")
 if __name__ == '__main__':
 
     while True:
@@ -348,12 +486,12 @@ if __name__ == '__main__':
         print("""
         支持以下命令：
         1 将json版本保存到数据
-        2 保存json为训练数据
+        2 保存json为训练数据 可以用于测试知识是否是合理的
         3 创建独特数据    
         4 清空独特数据库 unique_data
         5 创建ner于关系标记数据集
         6 保存知识提取数据集
-        
+        7 保存ner数据集        
         """)
         x=input("输入命令：")
         try:
@@ -374,9 +512,11 @@ if __name__ == '__main__':
         elif x==4:
             kg.clear_unique_data()
         elif x==5:
-            kg.save_to_json_ner()
+            kg.save_to_json_ner_rel()
         elif x==6:
             kg.save_to_json_kg()
+        elif x==7:
+            kg.save_to_json_ner()
         else:
             print("输入有误")
             

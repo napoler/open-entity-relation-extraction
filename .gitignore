@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-
+关系判断/indexdir
 code/demo/tkitfiles
 关系判断/tkitfiles
 data/knowledge_triple.json
