@@ -139,10 +139,12 @@ $(document).on('click', '.upkg', function () {
           {{  pre[0]}}  | {{pre[1]}}
           <br>
             {%- endfor %}</p>
-        <p class="mb-1">{{item['sentence']}}</p>
+        <p class="mb-1">{{item['sentence_mark']}}</p>
+        <a  type="button"   href="/add?s={{item['sentence']}}&kg1={{item['kg'][0]}}&kg2={{item['kg'][1]}}&kg3={{item['kg'][2]}}"  class="btn btn-light ">编辑</a>
         <!-- <small class="text-muted">Donec id elit non mi porta.</small> -->
         <button  type="button" data-value='1' data-key="{{k}}"  class="btn btn-primary btn-lg btn-block upkg">不是</button>
         <button  type="button" data-value='2' data-key="{{k}}"   class="btn btn-secondary btn-lg btn-block upkg">是</button>
+      
       </div>
  
 

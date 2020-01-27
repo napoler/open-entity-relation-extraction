@@ -1,5 +1,5 @@
 #encoding=utf-8
-from flask import Flask, render_template, request, json, Response, jsonify,escape
+from flask import Flask, render_template, request, json, Response, jsonify,escape,redirect
 
 
 
@@ -233,7 +233,7 @@ def kg_list():
                 s=item['sentence']
                 for w in item['kg']:
                     s=s.replace(w,"<<█"+w+"█>>")
-                item['sentence']=s
+                item['sentence_mark']=s
 
                 if label=="all":
                     items.append((k,item))
@@ -264,11 +264,11 @@ def kg_list():
                 p,pr=pre(item)
                 item['pre']=pr
                 item['ai']=p
-                
+
                 s=item['sentence']
                 for w in item['kg']:
                     s=s.replace(w,"<<█"+w+"█>>")
-                item['sentence']=s
+                item['sentence_mark']=s
 
                 if label=="all":
                     items.append((k,item))
@@ -340,7 +340,61 @@ def edit_submit(key,label):
     data['ai']=p
     data['key']=key
     return render_template("edit.html", **locals())
+@app.route("/add",methods=[ 'GET'])
+def add():
+    """
+    构建训练数据
+    """
+    sentence=request.args.get('s')
+    kg1=request.args.get('kg1')
+    kg2=request.args.get('kg2')
+    kg3=request.args.get('kg3')
+    if sentence==None:
+        sentence=''
+    if kg1==None:
+        kg1=''
+    if kg2==None:
+        kg2=''
+    if kg3==None:
+        kg3=''
+    return render_template("add.html", **locals())
+@app.route("/add_submit",methods=[ 'GET'])
+def add_submit():
+    """
+    构建训练数据
+    """
+    tt=tkitText.Text()
+    kg.tdb.load("kg_mark")
+    # data=kg.tdb.get(key)
+    # data=kg.tdb.str_dict(data)
+    sentence=request.args.get('sentence')
+    kg1=request.args.get('kg1')
+    kg2=request.args.get('kg2')
+    kg3=request.args.get('kg3')
+    data={}
+    data['state']='2'
+    data["label"]=2
+    data['sentence']=sentence
+    data['kg']=[kg1,kg2,kg3]
+    key=tt.md5(data["sentence"]+'，'.join(data['kg']))
+    
+    
+    kg.mark_sentence(key,data)
 
+    # #检查是否是合理的知识
+    # tkg="[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
+    # p=tclass.pre(tkg)
+    # softmax=tclass.softmax()
+    # print("分类","|",'概率')
+    # pre=[]
+    # for ck,rank in zip([1,2],softmax):
+    #     print(ck,"|",rank)
+    #     pre.append([ck,rank])
+    # data['pre']=pre
+    # data['ai']=p
+    # data['key']=key
+    # return '已经保存'
+    return redirect("/edit_submit/"+key+"/2", code=302)
 
 @app.route("/json/edit_submit",methods=[ 'GET'])
 def json_edit_submit():
