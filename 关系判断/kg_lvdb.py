@@ -8,12 +8,14 @@ from tqdm import tqdm
 import os
 import shutil
 import json
+
+from  config import *
 class KgDatabase:
     def __init__(self):
         tkitFile.File().mkdir("../tdata")
         
         self.tdb= tkitDb.LDB(path="../tdata/lv.db")
-
+        self.ss=tkitSearch.Search()
         pass
     def read_kg(self):
         kgjson=tkitFile.Json("../data/knowledge_triple.json")
@@ -51,10 +53,10 @@ class KgDatabase:
         """
         添加一个索引
         """
-        ss=tkitSearch.Search()
+        
         data=[{'title':",".join(item.get("kg")),'content':item.get("sentence"),'path':k}]
         # print(data)
-        ss.add(data) 
+        self.ss.add(data) 
     def mark_sentence(self,key,data):
         """
         将json版本保存到数据
@@ -68,7 +70,7 @@ class KgDatabase:
         self.tdb.load("kg_mark")
         # tt=tkitText.Text()
         # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
-        self.index_one(key,data)
+        # self.index_one(key,data)
         self.tdb.put_data([(key,data)])
     def get_unmarked_auto_sentence(self):
         """
@@ -129,6 +131,7 @@ class KgDatabase:
     def check_marked(self,key):
         self.tdb.load("kg_mark")
         kg=self.tdb.get(key)
+        print("检查重复",kg)
         if kg==None:
             return False
         else:
@@ -169,7 +172,47 @@ class KgDatabase:
         #覆盖之前文件
         shutil.move(json_file+".tmp.json",json_file)
 
-
+    def save_to_json_backup(self):
+        """
+        将数据保存为json版本
+        """
+        kgjson_t=tkitFile.Json("../tdata/data/train.json")
+        # kgjson_d=tkitFile.Json("../tdata/kg_check/dev.json")
+        # kgjson_l=tkitFile.Json("../tdata/kg_check/labels.json")
+        # self.tdb.load("kg_mark")
+        data=[]
+        i=0
+        n=0
+        self.tdb.load("kg_mark")
+        tt=tkitText.Text()
+        i=-1
+        for k,v in self.tdb.get_all():
+            i=i+1
+            # print(v)
+            if v==None:
+                n += 1
+            else:
+                try: 
+                    it=self.tdb.str_dict(v)
+                    one={}
+                    one['sentence']=" [kg] "+",".join(it['kg'])+" [/kg] "+it['sentence']
+                    one['label']=it['label']-1
+                    
+                    if int(one['label']) in [0,1] and len(it['kg'])==3:
+                        data.append(it)
+                    else:
+                        # print(it)
+                        pass
+                except:
+                    # self.tdb.load("kg")
+                    continue
+        # c=int(len(data)*0.85)
+        print("总数据",len(data),i,n)
+        kgjson_t.save(data)
+        # kgjson_d.save(data[c:])
+        #自动处理重复标记问题
+        self.json_remove_duplicates("../tdata/data/train.json")
+        print("已经将数据导出到 ../tdata/data")
 
     def save_to_json(self):
         """
@@ -197,7 +240,7 @@ class KgDatabase:
                     one['sentence']=" [kg] "+",".join(it['kg'])+" [/kg] "+it['sentence']
                     one['label']=it['label']-1
                     
-                    if int(one['label']) in [0,1] and len(it['kg'])==3:
+                    if int(one['label']) in [0,1] and len(it['kg'])==3  and it.get('check')!=None and it.get('state')=='2':
                         data.append(one)
                     else:
                         # print(it)
@@ -265,7 +308,8 @@ class KgDatabase:
         for k,v in self.tdb.get_all():
             try: 
                 it=self.tdb.str_dict(v)
-                if it['label']-1!=1 or it['state']!='2':
+                # if it['label']-1!=1 or it['state']!='2':
+                if it['label']-1!=1 or it['state']!='2' or  it.get('check')==None or len(it['kg'])!=3:
                     continue
                 else:
                     # print("状态为2")
@@ -308,7 +352,81 @@ class KgDatabase:
             except:
                 print("删除失败")
 
-   
+
+    def get_key(self,data):
+        tt=tkitText.Text()
+        key=tt.md5(data["sentence"]+'，'.join(data['kg']))
+        return key
+    def updata_key(self):
+        """
+        自动更新key
+        
+        """
+        kg_mark=0
+        kg_mark_all=0
+        self.tdb.load("kg_mark")
+        for k,v in self.tdb.get_all():
+            try:
+                kg_mark_all=kg_mark_all+1
+                it=self.tdb.str_dict(v)
+                if len(it['kg'])==3:
+                    print("可以更新")
+                    key=self.get_key(it)
+                    it['_id']=key
+                    print("key",key)
+                    print(DB.kg_mark.insert_one(it).inserted_id)
+                    # # print('old',k,"new",key)
+                    # if key!=k:
+                    #     self.tdb.delete(k)
+                    #     self.mark_sentence(key, it)
+                    #     # print("更新")
+                    #     kg_mark=kg_mark+1
+            except:
+                pass
+        kg_auto_sentence=0
+        kg_auto_sentence_all=0
+        self.tdb.load("kg_auto_sentence")
+        for k,v in self.tdb.get_all():
+            try:
+                kg_auto_sentence_all=kg_auto_sentence+1
+                it=self.tdb.str_dict(v)
+                if len(it['kg'])==3:
+                    # print("可以更新")
+                    key=self.get_key(it)
+                    it['_id']=key
+                    print(DB.kg_auto_sentence.insert_one(it).inserted_id)
+                    # # print('old',k,"new",key)
+                    # if key!=k:
+                    #     self.tdb.delete(k)
+                    #     self.mark_sentence(key, it)
+                    #     # print("更新")
+                    #     kg_auto_sentence=kg_auto_sentence+1
+            except:
+                pass
+        kg=0
+        kg_all=0
+        self.tdb.load("kg")
+        for k,v in self.tdb.get_all():
+            try:
+                kg_all=kg_all+1
+                it=self.tdb.str_dict(v)
+                if len(it['kg'])==3:
+                    # print("可以更新")
+                    key=self.get_key(it)
+                    it['_id']=key
+                    print(DB.kg.insert_one(it).inserted_id)
+                    # # print('old',k,"new",key)
+                 
+                    # if key!=k:
+                    #     self.tdb.delete(k)
+                    #     self.mark_sentence(key, it)
+                    #     # print("更新")
+                    #     kg=kg+1
+            except:
+                pass
+        # print("kg_mark",kg_mark_all,kg_mark)
+        # print("kg",kg_all,kg)
+        # print("kg_auto_sentence",kg_auto_sentence_all,kg_auto_sentence)
     def save_to_json_ner_rel(self):
         tkitFile.File().mkdir("../tdata/ner")
         kgjson_t=tkitFile.Json("../tdata/ner_rel/train.json")
@@ -400,8 +518,10 @@ class KgDatabase:
                             ner[one[0]].append(one[1])
                     except:
                         ner[one[0]]=[one[1]]
-                
+                # print("++++++"*10)
+                # print('text',text)                
                 ner_list =[tmp for  tmp in ner.keys() ]
+                # print('ner_list',ner_list)   
                 # print(ner_list)
                 # fner =[word for word,flag in nlp_plus.ner(text)]
                 fner=[]
@@ -410,7 +530,8 @@ class KgDatabase:
                     fner.append(word)
                 ner_list=list(set(ner_list+fner))
                 ner_list = sorted(ner_list,key = lambda i:len(i),reverse=False)
-                # print(ner_list)
+
+                # print('ner_list',ner_list)
                 s=0
                 for nr in ner_list:
                 
@@ -421,7 +542,7 @@ class KgDatabase:
                 if s>0:
                     one={'text':list(text),'label':label}
                     data.append(one)
-                    # print(one)
+                    
                     # print(flags)
             except:
                 pass
@@ -491,7 +612,9 @@ if __name__ == '__main__':
         4 清空独特数据库 unique_data
         5 创建ner于关系标记数据集
         6 保存知识提取数据集
-        7 保存ner数据集        
+        7 保存ner数据集      
+        8 将所有数据保存为json 备份  
+        9 更新key
         """)
         x=input("输入命令：")
         try:
@@ -517,6 +640,10 @@ if __name__ == '__main__':
             kg.save_to_json_kg()
         elif x==7:
             kg.save_to_json_ner()
+        elif x==8:
+            kg.save_to_json_backup()
+        elif x==9:
+            kg.updata_key()
         else:
             print("输入有误")
             

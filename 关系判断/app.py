@@ -1,9 +1,10 @@
-#encoding=utf-8
-from flask import Flask, render_template, request, json, Response, jsonify,escape,redirect
+# encoding=utf-8
+from flask import Flask, render_template, request, json, Response, jsonify, escape, redirect
+import psutil
 
-
-
-#encoding=utf-8
+import os
+import sys
+# encoding=utf-8
 from kg_lvdb import KgDatabase
 from albert_pytorch import classify
 import jiagu
@@ -60,7 +61,7 @@ from harvesttext import HarvestText
 import pkuseg
 
 from pprint import pprint
-
+import gc
 
 
 import os
@@ -77,8 +78,8 @@ from pyltp import Segmentor
 from pyltp import Postagger
 from pyltp import NamedEntityRecognizer
 
-
-
+# 查看内存占用
+from memory_profiler import profile
 
 
 # kg=KgDatabase()
@@ -91,37 +92,33 @@ from pyltp import NamedEntityRecognizer
 # tt.load_ht()
 # # tt.typed_words(ht_model="tkitfiles/ht.model")
 # i=0
-# tclass=classify(model_name_or_path='tkitfiles/checkkg')
+# Tclass=classify(model_name_or_path='tkitfiles/checkkg')
 # #检查是不是知识
-# check_kg=classify(model_name_or_path='../tdata/albert_check_kg')
+# Check_kg=classify(model_name_or_path='../tdata/albert_Check_kg')
 # # check_pet=classify(model_name_or_path='../tdata/albert-chinese-pytorch-pet')
 
 
-
-
 from mark import *
-
-
-
-
-
-
+from TEntityRel import *
+from config import *
 
 
 def pre(data):
     """
     获取预测结果
     """
-    tkg="[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
-    p=tclass.pre(tkg)
-    softmax=tclass.softmax()
-    print("分类","|",'概率')
-    pre=[]
-    for ck,rank in zip([1,2],softmax):
-        print(ck,"|",rank)
-        pre.append([ck,rank])
-    return p+1,pre
-
+    tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
+    p = Tclass.pre(tkg)
+    softmax = Tclass.softmax()
+    Tclass.release
+    print("分类", "|", '概率')
+    pre = []
+    for ck, rank in zip([1, 2], softmax):
+        print(ck, "|", rank)
+        pre.append([ck, rank])
+    # del Tclass
+    gc.collect()
+    return p+1, pre
 
 
 app = Flask(__name__)
@@ -131,317 +128,565 @@ app = Flask(__name__)
 def index():
     return render_template("index.html")
 # 获取列表的第二个元素
+
+
 def takeSecond(elem):
     return elem[1]
+
+
 @app.route('/list/rel')
 def kg_list_rel():
     """
     label all 0,1,2
     过滤
-    
-    
+
+
     """
     # label all 0,1,2
     # print(label)
-    i=0
-    items={}
+    i = 0
+    items = {}
     kg.tdb.load("kg_mark")
 
     # ss=tkitSearch.Search()
     # keyword=request.args.get('keyword')
     # start=request.args.get('start')
-    label=request.args.get('label')
-    state=request.args.get('state')
+    label = request.args.get('label')
+    state = request.args.get('state')
 
-    if label==None or len(label)==0:
-        label="all"
-    for k,v in kg.tdb.get_all():
-        try: 
-            item=kg.tdb.str_dict(v)
+    if label == None or len(label) == 0:
+        label = "all"
+    for k, v in kg.tdb.get_all():
+        try:
+            item = kg.tdb.str_dict(v)
         except:
             continue
             pass
         # if i>=20:
         #     break
-    
-        if item.get('kg')!=None and item.get('state') == state:
-            if len(item.get('kg'))==3:
-                if label=="all":
+
+        if item.get('kg') != None and item.get('state') == state:
+            if len(item.get('kg')) == 3:
+                if label == "all":
                     # items.append(item['kg'][1])
-                    if items.get(item['kg'][1])==None:
-                       items[item['kg'][1]]=1
+                    if items.get(item['kg'][1]) == None:
+                        items[item['kg'][1]] = 1
                     else:
-                        items[item['kg'][1]]= items[item['kg'][1]]+1
-                    i=i+1
-                elif item.get('label')==label or  item.get('label')==int(label):
-                    if items.get(item['kg'][1])==None:
-                       items[item['kg'][1]]=1
+                        items[item['kg'][1]] = items[item['kg'][1]]+1
+                    i = i+1
+                elif item.get('label') == label or item.get('label') == int(label):
+                    if items.get(item['kg'][1]) == None:
+                        items[item['kg'][1]] = 1
                     else:
                         # print("1111",item['kg'][1])
-                        items[item['kg'][1]]= items[item['kg'][1]]+1
-                    i=i+1
-    new=[]
+                        items[item['kg'][1]] = items[item['kg'][1]]+1
+                    i = i+1
+    new = []
     print(items)
     for word in items.keys():
-        new.append((word,items[word]))
-    new.sort(key=takeSecond,reverse = True)
-    items=new
-        # if item.get('kg')==None or len(item.get('kg'))==0:
+        new.append((word, items[word]))
+    new.sort(key=takeSecond, reverse=True)
+    items = new
+    # if item.get('kg')==None or len(item.get('kg'))==0:
     # items=list(set(items))
-    if len(items)>0:
-       return render_template("list_rel.html", **locals())
+    if len(items) > 0:
+        return render_template("list_rel.html", **locals())
     else:
         return "没有数据"
+
+
 @app.route('/list')
 def kg_list():
     """
     label all 0,1,2
     过滤
-    
-    
+
+
     """
+    tt = tkitText.Text()
     # label all 0,1,2
     # print(label)
-    i=0
-    items=[]
-    kg.tdb.load("kg_mark")
+    i = 0
+    items = []
+    
 
-    ss=tkitSearch.Search()
-    keyword=request.args.get('keyword')
-    start=request.args.get('start')
-    label=request.args.get('label')
-    tp=request.args.get('type')
-    state=request.args.get('state')
+    ss = tkitSearch.Search()
+    keyword = request.args.get('keyword')
+    start = request.args.get('start')
+    label = request.args.get('label')
+    tp = request.args.get('type')
+    state = request.args.get('state')
+    check = request.args.get('check')
+    if start == None:
+        kg.tdb.load("var")
+        try:
+            start=kg.tdb.get("list_start")
+        except:
+            pass
+    print("start",start)
+
+    kg.tdb.load("kg_mark")
     print(state)
-    if state==None:
-        state="2"  
+    if state == None:
+        state = "2"
     # states=[]
-    if label==None or len(label)==0:
-        label="all"
-    if keyword==None or len(keyword)==0:
-        for k,v in kg.tdb.get_all(start=start):
-            try: 
-                item=kg.tdb.str_dict(v)
+    if label == None or len(label) == 0:
+        label = "all"
+    if keyword == None or len(keyword) == 0:
+        print("no kw")
+        jump=["目","是",'市镇']
+        for k, v in kg.tdb.get_all(start=start):
+            # print(k)
+            try:
+                item = kg.tdb.str_dict(v)
             except:
                 pass
-            if i>=20:
+            if i >= 100:
+                kg.tdb.load("var")
+                # kg.tdb.get("list_start")
+                kg.tdb.put_data([('list_start',list_start)])
+                print('list_start',list_start)
                 break
-        
-            if item.get('kg')!=None and item.get('state')=='2':
-                p,pr=pre(item)
-                item['pre']=pr
-                item['ai']=p
+            # 索引数据
+            # index_one(k, item)
+            if item.get('kg') != None and item.get('state') == state and item.get('check') == check:
+                # index_one(k, item)
+                #自动跳过
+                if item.get('kg')[1] in jump:
+                    continue
+                print('选择', item)
+                p, pr = pre(item)
+                item['pre'] = pr
+                item['ai'] = p
+                # 自动保存进程
+                item['check'] = True
+                # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
+                kg.mark_sentence(k, item)
 
-                s=item['sentence']
+                s = item['sentence']
                 for w in item['kg']:
-                    s=s.replace(w,"<<█"+w+"█>>")
-                item['sentence_mark']=s
+                    s = s.replace(w, "<<█"+w+"█>>")
+                item['sentence_mark'] = s
 
-                if label=="all":
-                    items.append((k,item))
-                    i=i+1
-                elif item.get('label')==int(label):
-                    items.append((k,item))
-                    i=i+1
+                if label == "all":
+                    items.append((k, item))
+                    i = i+1
+                    list_start=k
+                elif item.get('label') == int(label):
+                    items.append((k, item))
+                    i = i+1
+                    list_start=k
 
     else:
-        # print("kkk")
-        if tp=='title':
-            result= ss.find_title(keyword)
+        print("kkk")
+        if tp == 'title':
+            result = ss.find_title(keyword)
         else:
-            result= ss.find(keyword)
+            result = ss.find(keyword)
         # print(result)
         for one in result:
-            v=kg.tdb.get(one['path'])
-            k=one['path']
-            try: 
-                item=kg.tdb.str_dict(v)
+            v = kg.tdb.get(one['path'])
+            k = one['path']
+            try:
+                item = kg.tdb.str_dict(v)
             except:
                 continue
                 pass
             # if item.get('kg')!=None and item.get('state')=='2':
-            if item.get('kg')!=None and item.get('state') == state:
-                # print(item)
-                # print(label, item.get('label'))
-                p,pr=pre(item)
-                item['pre']=pr
-                item['ai']=p
+            if item.get('kg') != None and item.get('state') == state and item.get('check') == check:
+                # 预测内容的概率
+                p, pr = pre(item)
+                item['pre'] = pr
+                item['ai'] = p
+                # 自动保存进程
+                item['check'] = True
+                # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
+                kg.mark_sentence(k, item)
 
-                s=item['sentence']
+                s = item['sentence']
                 for w in item['kg']:
-                    s=s.replace(w,"<<█"+w+"█>>")
-                item['sentence_mark']=s
+                    s = s.replace(w, "<<█"+w+"█>>")
+                item['sentence_mark'] = s
 
-                if label=="all":
-                    items.append((k,item))
-                    i=i+1
-                elif item.get('label')==label or  item.get('label')==int(label):
-                    items.append((k,item))
+                if label == "all":
+                    items.append((k, item))
+                    i = i+1
+                elif item.get('label') == label or item.get('label') == int(label):
+                    items.append((k, item))
                     # print("3333")
-                    i=i+1
- 
+                    i = i+1
 
+    # for x in dir():
+    #     print(x,sys.getsizeof(x)/1024/1024,'mb')
+    del ss
+    gc.collect()
 
-
-        # if item.get('kg')==None or len(item.get('kg'))==0:
-    if len(items)>0:
-       return render_template("list.html", **locals())
+    # if item.get('kg')==None or len(item.get('kg'))==0:
+    if len(items) > 0:
+        return render_template("list.html", **locals())
     else:
         return "没有数据"
+
 
 @app.route('/edit/<key>')
 def kg_edit(key):
     """
 
     过滤
-    
-    
+
+
     """
-    
+    # Tclass=classify(model_name_or_path='tkitfiles/checkkg')
     # data=[]
     kg.tdb.load("kg_mark")
-    data=kg.tdb.get(key)
-    data=kg.tdb.str_dict(data)
-    #检查是否是合理的知识
-    tkg="[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
-    p=tclass.pre(tkg)
-    softmax=tclass.softmax()
-    print("分类","|",'概率')
-    pre=[]
-    for ck,rank in zip([1,2],softmax):
-        print(ck,"|",rank)
-        pre.append([ck,rank])
-    data['pre']=pre
-    data['ai']=p+1
-    data['key']=key
+    data = kg.tdb.get(key)
+    data = kg.tdb.str_dict(data)
+    # 检查是否是合理的知识
+    tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
+    p = Tclass.pre(tkg)
+    softmax = Tclass.softmax()
+    Tclass.release()
+    print("分类", "|", '概率')
+    pre = []
+    for ck, rank in zip([1, 2], softmax):
+        print(ck, "|", rank)
+        pre.append([ck, rank])
+    data['pre'] = pre
+    data['ai'] = p+1
+    data['key'] = key
 
     return render_template("edit.html", **locals())
 
-@app.route("/edit_submit/<key>/<int:label>",methods=[ 'GET'])
-def edit_submit(key,label):
+
+
+
+
+
+
+
+
+@app.route('/page')
+def page_list():
+    """
+    label all 0,1,2
+    过滤
+
+
+    """
+    tt = tkitText.Text()
+    start = request.args.get('start')
+    kg.tdb.load("kg_mark")
+    items=[]
+    i=0
+    for k, v in kg.tdb.get_all(start=start):
+        # print(k)
+        try:
+            item = kg.tdb.str_dict(v)
+        except:
+            pass
+        if i >= 100:
+        
+            break
+        # 索引数据
+        # index_one(k, item)
+        if item.get('kg') != None:
+            # index_one(k, item)
+            # print('选择', item)
+            items.append((k, item))
+            i = i+1
+    # gc.collect()
+    if len(items) > 0:
+        return render_template("page_list.html", **locals())
+    else:
+        return "没有数据"
+
+    # return jsonify(items)
+
+
+
+
+
+@app.route("/page/<key>/")
+def page(key):
     """
     构建训练数据
     """
+    # Tclass=classify(model_name_or_path='tkitfiles/checkkg')
     kg.tdb.load("kg_mark")
-    data=kg.tdb.get(key)
-    data=kg.tdb.str_dict(data)
-    data['state']='2'
-    data["label"]=label
-    kg.mark_sentence(key,data)
+    data = kg.tdb.get(key)
+    data = kg.tdb.str_dict(data)
+    # 检查是否是合理的知识
+    tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
+    p = Tclass.pre(tkg)
+    softmax = Tclass.softmax()
+    Tclass.release()
+    print("分类", "|", '概率')
+    pre = []
+    for ck, rank in zip([1, 2], softmax):
+        print(ck, "|", rank)
+        pre.append([ck, rank])
+    data['pre'] = pre
+    data['ai'] = p
+    data['key'] = key
+    print('原始md5',key)
+    # kg.tdb.delete(key)
+    key=get_key(data)
+    print('新的md5',key)
+    return render_template("page.html", **locals())
 
-    #检查是否是合理的知识
-    tkg="[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
-    p=tclass.pre(tkg)
-    softmax=tclass.softmax()
-    print("分类","|",'概率')
-    pre=[]
-    for ck,rank in zip([1,2],softmax):
-        print(ck,"|",rank)
-        pre.append([ck,rank])
-    data['pre']=pre
-    data['ai']=p
-    data['key']=key
+
+
+
+
+
+
+
+@app.route("/edit_submit/<key>/<int:label>", methods=['GET'])
+def edit_submit(key, label):
+    """
+    构建训练数据
+    """
+    # Tclass=classify(model_name_or_path='tkitfiles/checkkg')
+    kg.tdb.load("kg_mark")
+    data = kg.tdb.get(key)
+    data = kg.tdb.str_dict(data)
+    data['state'] = '2'
+    data["label"] = label
+    kg.mark_sentence(key, data)
+
+    # 检查是否是合理的知识
+    tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
+    p = Tclass.pre(tkg)
+    softmax = Tclass.softmax()
+    Tclass.release()
+    print("分类", "|", '概率')
+    pre = []
+    for ck, rank in zip([1, 2], softmax):
+        print(ck, "|", rank)
+        pre.append([ck, rank])
+    data['pre'] = pre
+    data['ai'] = p
+    data['key'] = key
+    print('原始md5',key)
+    # kg.tdb.delete(key)
+    key=get_key(data)
+    print('新的md5',key)
     return render_template("edit.html", **locals())
-@app.route("/add",methods=[ 'GET'])
+
+
+@app.route('/add/text')
+def add_text():
+    """
+    添加文章
+
+    """
+    return render_template("add_text.html", **locals())
+
+
+@app.route('/add/article', methods=['POST', 'GET'])
+def add_article():
+    """
+    添加文章
+
+    """
+    items = []
+    print(request.form)
+    article = request.form.get('article')
+    if article == None:
+        return render_template("add_article.html", **locals())
+    else:
+        tt = tkitText.Text()
+        sents = tt.sentence_segmentation_v1(article)
+        # print(items)
+        for item in sents:
+            if len(item) > 10:
+                ner_list = ner_plus(item)
+                onlykgs = []
+                if len(ner_list) > 0:
+                    onlykgs = pre_kg(item)
+                items.append((item, onlykgs, ner_list))
+
+        return render_template("add_article.html", **locals())
+# @app.route('/add_submit/text',methods=[ 'GET'])
+# def add_submit_text():
+#     """
+#     添加文章
+#     """
+#     tt=tkitText.Text()
+#     sentence=request.args.get('sentence')
+#     onlykgs=pre_kg(sentence)
+#     for kg_one in onlykgs:
+#         # data['kg']=kg
+#         key=tt.md5(sentence+'，'.join(kg_one))
+#         print(key)
+#         # kg_status=kg.check_marked(key)
+
+#         #检查是否是合理的知识
+#         tkg="[kg] "+",".join(kg_one)+" [/kg] "+sentence
+#         p=Tclass.pre(tkg)
+#         softmax=Tclass.softmax()
+#         # print("分类","|",'概率')
+#         # for ck,rank in zip([1,2],softmax):
+#         #     print(ck,"|",rank)
+
+#         if softmax[1]>0.1:
+#             if kg.check_marked(key)==True:
+#                 kgs.append((kg_one,key,'True',softmax[1], "rank_"+str(int(round(softmax[1], 1)*10))))
+#             else:
+#                 print("kg检查失败")
+#                 kgs.append((kg_one,key,'False',softmax[1],  "rank_"+str(int(round(softmax[1], 1)*10))))
+
+
+#     return render_template("add_submit_text.html", **locals())
+
+@app.route("/add", methods=['GET'])
+#@profile
 def add():
     """
     构建训练数据
     """
-    sentence=request.args.get('s')
-    kg1=request.args.get('kg1')
-    kg2=request.args.get('kg2')
-    kg3=request.args.get('kg3')
-    if sentence==None:
-        sentence=''
-    if kg1==None:
-        kg1=''
-    if kg2==None:
-        kg2=''
-    if kg3==None:
-        kg3=''
-    onlykgs=pre_kg(sentence)
-    data={'sentence':sentence,'kg':[kg1,kg2,kg3]
-    }
+    info = psutil.virtual_memory()
+
+    print(u'内存占比：', info.percent)
+
+    if info.percent > 10:
+        # os.kill()
+        # sys.exit()
+        # quit()
+        print('get_threshold', gc.get_threshold())
+        gc.set_threshold(1, 1, 1)
+        gc.collect()
+        pass
+    elif info.percent > 90:
+        sys.exit()
+
+    tt = tkitText.Text()
+    # Tclass=classify(model_name_or_path='tkitfiles/checkkg')
+    sentence = request.args.get('s')
+    kg1 = request.args.get('kg1')
+    kg2 = request.args.get('kg2')
+    kg3 = request.args.get('kg3')
+    if sentence == None:
+        sentence = ''
+    if kg1 == None:
+        kg1 = ''
+    if kg2 == None:
+        kg2 = ''
+    if kg3 == None:
+        kg3 = ''
+    onlykgs = pre_kg(sentence)
+    data = {'sentence': sentence, 'kg': [kg1, kg2, kg3]
+            }
     # pre(data)
-    p,pr=pre(data)
-    data['pre']=pr
-    data['ai']=p
-    kgs=[]
+    p, pr = pre(data)
+    data['pre'] = pr
+    data['ai'] = p
+    kgs = []
     for kg_one in onlykgs:
         # data['kg']=kg
-        key=tt.md5(data["sentence"]+'，'.join(kg_one))
+        key = tt.md5(data["sentence"]+'，'.join(kg_one))  
         print(key)
         # kg_status=kg.check_marked(key)
-        
-        if kg.check_marked(key)==True:
-            kgs.append((kg_one,key,'True'))
-        else:
-            print("kg检查失败")
-            kgs.append((kg_one,key,'False'))
 
+        # 检查是否是合理的知识
+        tkg = "[kg] "+",".join(kg_one)+" [/kg] "+data['sentence']
+        p = Tclass.pre(tkg)
+        softmax = Tclass.softmax()
+        Tclass.release()
+        # print("分类","|",'概率')
+        # for ck,rank in zip([1,2],softmax):
+        #     print(ck,"|",rank)
 
+        if softmax[1] > 0.1:
+            if kg.check_marked(key) == True:
+                kgs.append(
+                    (kg_one, key, 'True', softmax[1], "rank_"+str(int(round(softmax[1], 1)*10))))
+            else:
+                print("kg检查失败")
+                kgs.append(
+                    (kg_one, key, 'False', softmax[1],  "rank_"+str(int(round(softmax[1], 1)*10))))
+        del p
+        del softmax
+        del tkg
+        gc.collect()
 
+    # del p
+    del onlykgs
+    del pr
+
+    gc.collect()
     return render_template("add.html", **locals())
-@app.route("/add_submit",methods=[ 'GET'])
+
+
+@app.route("/add_submit", methods=['GET'])
+#@profile
 def add_submit():
     """
     构建训练数据
+
     """
-    tt=tkitText.Text()
+    tt = tkitText.Text()
+    info = psutil.virtual_memory()
+    print(u'内存占比：', info.percent)
+    if info.percent > 90:
+        os.kill()
+        pass
     kg.tdb.load("kg_mark")
     # data=kg.tdb.get(key)
     # data=kg.tdb.str_dict(data)
-    sentence=request.args.get('sentence')
-    kg1=request.args.get('kg1')
-    kg2=request.args.get('kg2')
-    kg3=request.args.get('kg3')
-    data={}
-    data['state']='2'
-    data["label"]=2
-    data['sentence']=sentence
-    data['kg']=[kg1,kg2,kg3]
-    key=tt.md5(data["sentence"]+'，'.join(data['kg']))
+    sentence = request.args.get('sentence')
+    kg1 = request.args.get('kg1')
+    kg2 = request.args.get('kg2')
+    kg2_rel = request.args.get('kg2_rel')
+    kg3 = request.args.get('kg3')
+    data = {}
+    data['state'] = '2'
+    data["label"] = 2
+    data['sentence'] = sentence
+    data['kg'] = [kg1, kg2, kg3]
+    data['check'] = True
+    key = get_key(data)
     
-    
-    kg.mark_sentence(key,data)
 
-    # #检查是否是合理的知识
-    # tkg="[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
-    # p=tclass.pre(tkg)
-    # softmax=tclass.softmax()
-    # print("分类","|",'概率')
-    # pre=[]
-    # for ck,rank in zip([1,2],softmax):
-    #     print(ck,"|",rank)
-    #     pre.append([ck,rank])
-    # data['pre']=pre
-    # data['ai']=p
-    # data['key']=key
-    # return '已经保存'
+    kg.mark_sentence(key, data)
+    # 开始添加关系词
+    # terry_er=TEntityRel()
+    print("添加关系词", kg2_rel, kg2)
+    if kg2_rel != None:
+        # print("添加关系词",kg2_rel,kg2)
+        Terry_er.add_entities_one(kg2_rel, kg2, '关系')
+    else:
+        Terry_er.add_entities_one(kg2, kg2, '关系')
+
+    # if kg2_rel !=None and kg2 !=None:
+    #     terry_er.add_entities_one(kg2_rel,kg2,'关系')
+
     return redirect("/edit_submit/"+key+"/2", code=302)
 
-@app.route("/json/edit_submit",methods=[ 'GET'])
+
+@app.route("/json/edit_submit", methods=['GET'])
 def json_edit_submit():
     """
     构建训练数据
-   
+
     """
     print("开始修改")
-    key=request.args.get('key')
-    label=request.args.get('label')
+    key = request.args.get('key')
+    label = request.args.get('label')
     print(label)
 
     kg.tdb.load("kg_mark")
-    data=kg.tdb.get(key)
-    data=kg.tdb.str_dict(data)
-    data['state']='2'
-    data["label"]=label
-    kg.mark_sentence(key,data)
+    data = kg.tdb.get(key)
+    data = kg.tdb.str_dict(data)
+    data['state'] = '2'
+    data["label"] = label
+    data['check'] = True
+    kg.mark_sentence(key, data)
 
     # #检查是否是合理的知识
     # tkg="[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
-    # p=tclass.pre(tkg)
-    # softmax=tclass.softmax()
+    # p=Tclass.pre(tkg)
+    # softmax=Tclass.softmax()
     # print("分类","|",'概率')
     # pre=[]
     # for ck,rank in zip([1,2],softmax):
@@ -449,24 +694,15 @@ def json_edit_submit():
     #     pre.append([ck,rank])
     # data['pre']=pre
     # data['ai']=p
-    data['key']=key
+    data['key'] = key
     print(data)
     return jsonify(data)
     # return render_template("edit.html", **locals())
 
 
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
     app.run(
-        host = '0.0.0.0',
-        port = 7777,  
-        debug = False 
+        host='0.0.0.0',
+        port=7777,
+        debug=False
     )
-

@@ -5,3 +5,18 @@
 div#list_all {
     padding-top: 80px;
 }
+/* .check_False{
+    background: #91da6c;
+} */
+
+.rank_10.check_False,.rank_9.check_False,.rank_8.check_False,.rank_7.check_False {
+    background: #85d847;
+}
+
+.rank_6,.rank_5 {
+    background: #dbefcd;
+}
+
+.check_True {
+    background: #cac4c4;
+}

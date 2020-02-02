@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
-  <title>Ai写作助手</title>
+  <title> 知识:  {{data['kg']}}    句子:  {{data['sentence']}}</title>
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/editormd.css" />
   <!-- <link rel="shortcut icon" href="https://pandao.github.io/editor.md/favicon.ico" type="image/x-icon" /> -->
@@ -24,44 +24,6 @@
 <body>
 
   
-  <nav class="navbar  navbar-expand-lg   navbar-dark bg-primary">
-    <a class="navbar-brand" href="/list?label=2">Ai知识标注工具</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNavDropdown">
-      <ul class="navbar-nav">
-
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            更多
-          </a>
-          <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-            <a class="dropdown-item" href="/list/rel?label=2&type=&state=2">关系词(状态2)</a>
-            <a class="dropdown-item" href="/list/rel?label=2&type=&state=1">关系词(状态1)</a>
-            <a class="dropdown-item" href="/list/rel?label=2&type=">关系词(状态None)</a>
-            <a class="dropdown-item" href="#">Another action</a>
-            <a class="dropdown-item" href="#">Something else here</a>
-          </div>
-        </li>
-      </ul>
-
-      
-    </div>
-
-    <form class="form-inline my-2 my-lg-0" action="/list" method="get">
-
-      <label for="inputState">label</label>
-      <select id="inputState" name="label" class="form-control">
-        <option selected value="2">label 2...</option>
-        <option  value="1">label 1...</option>
-      </select>
-      <input name="keyword" class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-      <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-    </form>
-  </nav>
- 
-
 
 <header></header>
 
@@ -148,15 +110,17 @@
         </p>
         <!-- <a href="#" class="card-link">Card link</a>
         <a href="#" class="card-link">Another link</a> -->
-        <button  type="button" onclick="closePage();"  class="btn btn-danger btn-lg btn-block upkg">关闭</button>
+        <!-- <button  type="button" onclick="closePage();"  class="btn btn-danger btn-lg btn-block upkg">关闭</button> -->
+
         　<INPUT name="pclog" type="button" value="添加"   class="btn btn-danger btn-lg btn-block " onClick="location.href='/add?s={{data['sentence']}}&kg1={{data['kg'][0]}}&kg2={{data['kg'][1]}}&kg3={{data['kg'][2]}}'">
-          　<INPUT name="pclog" type="button" value="不是"   class="btn btn-primary btn-lg btn-block " onClick="location.href='/edit_submit/{{data['key']}}/1'">
-          　<INPUT name="pclog" type="button" value="是"   class="btn btn-success btn-lg btn-block " onClick="location.href='/edit_submit/{{data['key']}}/2'">
-        <!-- <a  type="button"   href="/edit_submit/{{data['key']}}/1" class="btn btn-primary btn-lg btn-block">不是</a>
+        　<INPUT name="pclog" type="button" value="不是"   class="btn btn-primary btn-lg btn-block " onClick="location.href='/edit_submit/{{data['key']}}/1'">
+        　<INPUT name="pclog" type="button" value="是"   class="btn btn-success btn-lg btn-block " onClick="location.href='/edit_submit/{{data['key']}}/2'">
+        <!-- <a  type="button" rel="nofollow"   href="/add?s={{data['sentence']}}&kg1={{data['kg'][0]}}&kg2={{data['kg'][1]}}&kg3={{data['kg'][2]}}"  target="new_view_window"class="btn btn-danger btn-lg btn-block upkg">添加</a>
+        <a  type="button" rel="nofollow"   href="/edit_submit/{{data['key']}}/1" class="btn btn-primary btn-lg btn-block">不是</a>
 
-        <a  type="button"   href="/edit_submit/{{data['key']}}/2"  class="btn btn-success btn-lg btn-block ">是</a> -->
+        <a  type="button" rel="nofollow"   href="/edit_submit/{{data['key']}}/2"  class="btn btn-success btn-lg btn-block ">是</a> -->
 
-        <a  type="button"   href="/list/2/{{data['key']}}"  class="btn btn-light btn-lg btn-block">返回列表</a>
+        <a  type="button"   href="/page?start={{data['key']}}"  class="btn btn-light btn-lg btn-block">返回列表</a>
       </div>
     </div>
 

@@ -1,52 +1,14 @@
 #encoding=utf-8
 from kg_lvdb import KgDatabase
-from albert_pytorch import classify
+
 import jiagu
 import tkitFile
 import tkitText
 import tkitNlp
+# import tkitDb
 import tkitSearch
-
+import gc
 from cocoNLP.extractor import extractor
-from tkitMarker import *
-# import tkitFile
-P=Pre()
-P.args['conf']="tkitfiles/v0.1/config.json"
-P.args['load_path']="tkitfiles/v0.1/pytorch_model.bin"
-P.args['vocab']="tkitfiles/v0.1/vocab.txt"
-P.args['label_file']="tkitfiles/v0.1/tag.txt"
-P.args['max_length']=50
-P.setconfig()
-
-#初始化提取关系词
-TNer=Pre()
-TNer.args['conf']="tkitfiles/ner_rel/config.json"
-TNer.args['load_path']="tkitfiles/ner_rel/pytorch_model.bin"
-TNer.args['vocab']="tkitfiles/ner_rel/vocab.txt"
-TNer.args['label_file']="tkitfiles/ner_rel/tag.txt"
-TNer.args['albert_path']="tkitfiles/ner_rel"
-TNer.args['albert_embedding']=312
-TNer.args['rnn_hidden']=400
-
-TNer.model_version='ner_rel'
-TNer.args['max_length']=50
-TNer.setconfig()
-
-
-# 初始化提取实体
-
-Ner=Pre()
-Ner.args['conf']="tkitfiles/ner/config.json"
-Ner.args['load_path']="tkitfiles/ner/pytorch_model.bin"
-Ner.args['vocab']="tkitfiles/ner/vocab.txt"
-Ner.args['label_file']="tkitfiles/ner/tag.txt"
-Ner.args['albert_path']="tkitfiles/ner"
-Ner.args['albert_embedding']=312
-Ner.args['rnn_hidden']=400
-
-Ner.model_version='ner'
-Ner.args['max_length']=50
-Ner.setconfig()
 
 
 ex = extractor()
@@ -55,6 +17,37 @@ from harvesttext import HarvestText
 import pkuseg
 
 from pprint import pprint
+
+from memory_profiler import profile
+
+from config import *
+
+
+
+
+
+
+
+
+kg=KgDatabase()
+# ht0 = HarvestText()
+tfile=tkitFile.File()
+
+# tt=tkitText.Text()
+# tt.load_ht(ht_model="tkitfiles/ht.model")
+
+
+# tt.typed_words(ht_model="tkitfiles/ht.model")
+i=0
+
+
+
+
+
+
+
+
+
 
 
 
@@ -74,6 +67,12 @@ from pyltp import NamedEntityRecognizer
 
 
 
+def get_key(data):
+    tt=tkitText.Text()
+    key=tt.md5(data["sentence"]+'，'.join(data['kg']))
+    return key
+
+    
 def ner(text):
     """
     """
@@ -137,10 +136,12 @@ def ner(text):
 
 #自动处理标记单条数据
 def auto_one(item): 
-
+    tt=tkitText.Text()
+    
     # print(key)
     # 检查知识是否是已经标记的
-    key=tt.md5(item["sentence"]+'，'.join(item['kg']))
+    # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
+    key=get_key(item)
     if kg.check_marked(key)==True:
         return True
 
@@ -161,7 +162,8 @@ def auto_one(item):
 
     #检查知识是否是符合知识规则
     ckg="#u#".join(item['kg'])
-    ckg=check_kg.pre(ckg)
+    ckg=Check_kg.pre(ckg)
+    Check_kg.release()
     if ckg+1==1:
         data=item
         data["label"]=1
@@ -200,8 +202,9 @@ def auto_one(item):
     print("~~~~~"*3)
     #检查是否是合理的知识
     tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
-    p=tclass.pre(tkg)
-    softmax=tclass.softmax()
+    p=Tclass.pre(tkg)
+    softmax=Tclass.softmax()
+    Tclass.release()
     print("------------------")
     print("分类","|",'概率')
     for ck,rank in zip([1,2],softmax):
@@ -240,10 +243,10 @@ def auto_one(item):
 
 #处理标记单条数据
 def one(item): 
-
+    tt=tkitText.Text()
     # print(key)
     # 检查知识是否是已经标记的
-    key=tt.md5(item["sentence"]+'，'.join(item['kg']))
+    key=get_key(item)
     if kg.check_marked(key)==True:
         return
     
@@ -254,7 +257,7 @@ def one(item):
 
 
     # tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
-    # p=tclass.pre(tkg)
+    # p=Tclass.pre(tkg)
     # if p==0:
     #     return
     # mark_sentence=item['kg'][0]+"#"+item['kg'][1]+"#"+item['sentence']
@@ -288,7 +291,8 @@ def one(item):
 
     #检查知识是否是符合知识规则
     ckg="#u#".join(item['kg'])
-    ckg=check_kg.pre(ckg)
+    ckg=Check_kg.pre(ckg)
+    Check_kg.release()
     if ckg+1==1:
         data=item
         data["label"]=1
@@ -338,8 +342,9 @@ def one(item):
 
     #检查是否是合理的知识
     tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
-    p=tclass.pre(tkg)
-    softmax=tclass.softmax()
+    p=Tclass.pre(tkg)
+    softmax=Tclass.softmax()
+    Tclass.release()
     print("分类","|",'概率')
     for ck,rank in zip([1,2],softmax):
         print(ck,"|",rank)
@@ -413,7 +418,7 @@ def one(item):
             print("描述",data['kg'][2])
             tt.add_words([item['kg'][0]],ht_model="tkitfiles/ht.model")
             print("选择Yes")
-            key=tt.md5(item["sentence"]+'，'.join(item['kg']))
+            key=get_key(item)
         else:
             # 无法标记设为拉圾
             data["label"]=1
@@ -430,22 +435,10 @@ def one(item):
 
 
 
-kg=KgDatabase()
-ht0 = HarvestText()
-tfile=tkitFile.File()
-tt=tkitText.Text()
-# tt=tkitText.Text()
-# tt.load_ht(ht_model="tkitfiles/ht.model")
-
-tt.load_ht()
-# tt.typed_words(ht_model="tkitfiles/ht.model")
-i=0
-tclass=classify(model_name_or_path='tkitfiles/checkkg')
-#检查是不是知识
-check_kg=classify(model_name_or_path='../tdata/albert_check_kg')
-# check_pet=classify(model_name_or_path='../tdata/albert-chinese-pytorch-pet')
 
 def run_mark():
+    tt=tkitText.Text()
+    tt.load_ht()
     i=0
     for key,item in kg.get_unmarked():
         print("#################标记数据######")
@@ -613,25 +606,42 @@ def ner_plus(text):
     # # for key in ner_list:
     # #     result.append(key)
     # return list(set(ner_list))
-    
+
+ 
     result=[]
     ner_result=Ner.pre([text])
     for ner in ner_result[0][1]:
         result.append(ner['words'])
         
     return result
-
-def pre_kg(text):
+def pre_kg_clear(text):
     """
     自动预测补全信息
     只提取知识
     """
+
+    tt=tkitText.Text()
+    # tt.load_ht()
+
+
     print("句子",text)
     ner_list=ner_plus(text)
 
+    #基于已存在的词典获取关系词
+    # terry_er=TEntityRel()
+    entity_words,rel=Terry_er.get_entity_rel(text)
+    # del terry_er
+    # gc.collect()
+    print("基于词典抽取关系词",rel)
+
     kgs=[] #返回提取的知识列表
+    print('ner_list',ner_list)
     for n in ner_list:
         vs=get_Relationship(text,n)
+        print('Ai预测关系词',n,vs)
+        vs=rel+vs #累加如关系词
+        vs=list(set(vs))
+        
         print("关系词",n,vs)
         for v in vs:
             item={
@@ -651,17 +661,132 @@ def pre_kg(text):
                 #添加kg
                 kgs.append(item['kg'])
 
-    ht_kg=tt.ht.triple_extraction(sent=text)
-    jiagu_kg = jiagu.knowledge(text)
-    all_kg=ht_kg+jiagu_kg+kgs
-    # all_kg=kgs   
-    return all_kg
+    all_kg=kgs
+    new_kg=[]
+    for item in all_kg:
+        for i,kg_word in enumerate( item):
+        # if len(item['kg'])>2:
+            #自动搜索最大匹配单词
+            # tt=tkitText.Text()
+
+            #暂时屏蔽自动修正知识
+            if i>2:
+                try:
+                    c,r=tt.find_match(text,kg_word)
+                    if r >50:
+                        item[i]=c
+                        print("自动修正知识",c)
+                except:
+                    pass
+        new_kg.append(item)
+
+    new_kg_re=[]
+    for it in new_kg:
+        if it not in new_kg_re:
+            new_kg_re.append(it)
+        # print(b) 
+    return new_kg_re
+#@profile
+def pre_kg(text):
+    """
+    自动预测补全信息
+    只提取知识
+    """
+
+    tt=tkitText.Text()
+    # tt.load_ht()
+
+
+    print("句子",text)
+    ner_list=ner_plus(text)
+
+
+    entity_words,rel=terry_er.get_entity_rel(text)
+    # terry_er.release() 
+    # del terry_er
+    gc.collect()
+    print("基于词典抽取关系词",rel)
+
+    kgs=[] #返回提取的知识列表
+    for n in ner_list:
+        vs=get_Relationship(text,n)
+        print('Ai预测关系词',vs)
+        vs=rel+vs #累加如关系词
+        vs=list(set(vs))
+        
+        print("关系词",n,vs)
+        for v in vs:
+            item={
+                'sentence':text,
+                'kg':[n,v]
+            }
+            s=item['sentence']
+            mark_sentence=item['kg'][0]+"#"+item['kg'][1]+"#"+item['sentence']
+            result=P.pre([mark_sentence])
+            # 
+            if len(result[0][1])>0:
+                # print("tkitMarker预测:",result[0][1][0])
+                item['kg'].append(result[0][1][0]['words'].replace("[UNK]",''))
+                # print(result)
+                # print(item['kg'])
+                
+                #添加kg
+                kgs.append(item['kg'])
+    # tt.load_ht()
+    # ht_kg=HT.triple_extraction(sent=text)
+    # tt.release()
+    # del ht_kg
+    # del tt
+    # gc.collect()
+    # jiagu_kg = jiagu.knowledge(text)
+    # all_kg=ht_kg+kgs
+    # all_kg=ht_kg+jiagu_kg+kgs
+    # all_kg=jiagu_kg+kgs
+    # tt.ht=None
+
+    # tt=tkitText.Text()
+    # all_kg=ht_kg+kgs
+    all_kg=kgs
+    new_kg=[]
+    for item in all_kg:
+        for i,kg_word in enumerate( item):
+        # if len(item['kg'])>2:
+            #自动搜索最大匹配单词
+            # tt=tkitText.Text()
+
+            #暂时屏蔽自动修正知识
+            if i>2:
+                try:
+                    c,r=tt.find_match(text,kg_word)
+                    if r >50:
+                        item[i]=c
+                        print("自动修正知识",c)
+                except:
+                    pass
+        new_kg.append(item)
+    # all_kg=kgs 
+    # new_kg=list(set(new_kg)) 
+    # del jiagu
+    # gc.collect()
+    # del ht_kg
+    # del jiagu_kg
+    # del tt.ht
+    # gc.collect()
+    del all_kg
+    gc.collect()
+    new_kg_re=[]
+    for it in new_kg:
+        if it not in new_kg_re:
+            new_kg_re.append(it)
+        # print(b) 
+    return new_kg_re
 
 #自动分析文本 预先预测出可能的知识
 def auto_text_pre(path="/mnt/data/dev/github/数据处理工具/tool_data_processing/data/text"):
     """
     使用模型推断描述 来标记数据
     """
+    tt=tkitText.Text()
     i=0
     auto_i=0
     for f in tfile.file_List(path):
@@ -681,7 +806,10 @@ def auto_text_pre(path="/mnt/data/dev/github/数据处理工具/tool_data_proces
             print("发现数据:",i,"auto成功的数据:",auto_i,"#################标记数据######")
 
             # 使用多种方案获取知识
-            kgs=pre_kg(s)
+            try:
+                kgs=pre_kg(s)
+            except:
+                continue
             # ht_kg=tt.ht.triple_extraction(sent=s)
             # jiagu_kg = jiagu.knowledge(s)
             # all_kg=ht_kg+jiagu_kg+kgs
@@ -697,8 +825,8 @@ def auto_text_pre(path="/mnt/data/dev/github/数据处理工具/tool_data_proces
                 # #检查是否是合理的知识
                 # tkg="[kg] "+",".join(k)+" [/kg] "+s
                 # print(tkg)
-                # p=tclass.pre(tkg)
-                # softmax=tclass.softmax()
+                # p=Tclass.pre(tkg)
+                # softmax=Tclass.softmax()
                 # print('分类','得分')
                 # for ck,rank in zip([1,2],softmax):
                 #     print(ck,rank)
@@ -708,7 +836,7 @@ def auto_text_pre(path="/mnt/data/dev/github/数据处理工具/tool_data_proces
                 }
                 i=i+1
                 #自动提取知识
-                key=tt.md5(new['sentence']+",".join(new['kg']))
+                key=get_key(new)
                 kg.auto_sentence(key,new)
                 print('自动提取',i,new)
 
@@ -748,7 +876,7 @@ def auto_text_pre(path="/mnt/data/dev/github/数据处理工具/tool_data_proces
 
 
 def run_text(path="/mnt/data/dev/github/数据处理工具/tool_data_processing/data/text"):
-
+    tt=tkitText.Text()
     for f in tfile.file_List(path):
         t=tfile.open_file(f)
         for s in tt.sentence_segmentation_v1(t):
@@ -791,6 +919,7 @@ def get_Relationship(text,ner):
     """
     获取关系词
     """
+
     pre_re=ner+"#"+text
     result=TNer.pre([pre_re])
     # print("预测的关系词::",result)
@@ -804,12 +933,15 @@ def statistics():
     """
     统计数据
     """
+    tt=tkitText.Text()
     i_m=0
     kg_none=0
     state_1=0
     state_2=0
     state_2_2=0
     other=0
+    check=0
+    checked=0
     for k,item in kg.recheck_all():
         i_m=i_m+1
         if item.get('kg')==None or len(item.get('kg'))==0:
@@ -823,6 +955,12 @@ def statistics():
 
         else:
             other=other+1
+        if  item.get('check')==None and item.get('state')=='2' and  item['label']==2:
+            check=check+1
+        elif  item.get('state')=='2':
+            checked=checked+1
+
+
 
     print("++++++++统计数据++++++++++++")
     print('kg_none',kg_none)
@@ -831,6 +969,8 @@ def statistics():
     print("state_2_2",state_2_2)
     print("other",other)
     print("i_m",i_m)
+    print("check",check)
+    print("checked",checked)
 
 
 
@@ -871,6 +1011,7 @@ def run_recheck(label=2,state='1',check_type=0):
     state='1' 0 不确定数据状态 1 自动筛选机率较高 2 最终状态
     
     """
+    tt=tkitText.Text()
     i_m=0
     print("""请输入概率阀值(0-1)""")
     limit = float(input("阀值:"))
@@ -914,8 +1055,9 @@ def run_recheck(label=2,state='1',check_type=0):
 
             #检查是否是合理的知识
             tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
-            p=tclass.pre(tkg)
-            softmax=tclass.softmax()
+            p=Tclass.pre(tkg)
+            softmax=Tclass.softmax()
+            Tclass.release()
             print("分类","|",'概率')
             for ck,rank in zip([1,2],softmax):
                 print(ck,"|",rank)
@@ -925,7 +1067,7 @@ def run_recheck(label=2,state='1',check_type=0):
             for w in item['kg']:
                 s=s.replace(w,"<<█"+w+"█>>")
 
-            # p=tclass.pre(tkg)
+            # p=Tclass.pre(tkg)
             p=p+1
             print('句子:',s)
             print("知识:",item['kg'])
@@ -1003,6 +1145,7 @@ def run_recheck(label=2,state='1',check_type=0):
 
 
 def run_index():
+    tt=tkitText.Text()
     ss=tkitSearch.Search()
     # ss.init_search()
     labels=[1,2]
@@ -1017,7 +1160,23 @@ def run_index():
             data=[{'title':",".join(item.get("kg")),'content':item.get("sentence"),'path':k}]
             # print(data)
             ss.add(data)
-        
+
+def run_index_task():
+    # tt=tkitText.Text()
+    ss=tkitSearch.Search()
+    # ss.init_search()
+    labels=[1,2]
+    states=['1','2']
+    i=0
+    for k,item in kg.recheck_all():
+        if (item.get("state")==None  and item.get("label")  in labels) or (item.get("state") in states and item.get("label") in labels):
+            # print(item)
+            if i%1000==0:
+                print(i)
+            i=i+1
+            data=[{'title':",".join(item.get("kg")),'content':item.get("sentence"),'path':k}]
+            # print(data)
+            ss.add(data)   
 def index_one(k,item):
     """
     添加一个索引
@@ -1047,11 +1206,16 @@ if __name__ == '__main__':
     8:重新筛查之前数据(自动,高于阀值自动标记)
     9:重新筛查之前数据(半自动,高于阀值自动放行)
     10:进行搜索索引操作
+    11:手动预测
+    12:自动索引
     """)
     x = input("输入你要执行的命令:")
     x=int(x)
     if x==1:
+
+        auto_text_pre("/home/terry/pan/github/bert/data/text/")
         auto_text_pre()
+        run_index()
     elif x==2:
         print("运行2")
         run_mark_pred()
@@ -1075,12 +1239,20 @@ if __name__ == '__main__':
         run_recheck(2,state='1',check_type=1)
         #检查低概率的
         run_recheck(0,state='1',check_type=1)
+        run_index()
+        auto_text_pre()
     elif x==9:
         print("检查label==2的")
         run_recheck(2,state='1',check_type=2)
     elif x==10:
         print("进行搜索索引操作")
         run_index()
+    elif x==11:
+        text = input("输入需要预测的句子:")
+        kgs=pre_kg_clear(text)
+        print(kgs)
+    elif x==12:
+        run_index_task()
     # run_mark()
     # run_text()
     # run_text_pre()

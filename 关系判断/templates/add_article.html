@@ -75,45 +75,53 @@
 
 <div class="pdo_tools">
  
-    <form action="add_submit" method="get">
-     Ai预测:   {{data['ai']}}    <br>
-     概率:
-        {% for pre in data['pre'] %}
-        {{  pre[0]}}  | {{pre[1]}}
-        <br>
-          {%- endfor %}
+    <form action="/add/article"  method="post">
+   
         <div class="form-group">
             <label for="exampleFormControlTextarea1">句子</label>
-            <textarea class="form-control" name='sentence' id="exampleFormControlTextarea1" rows="3">{{sentence}}</textarea>
+            <textarea class="form-control" name='article' id="exampleFormControlTextarea1" rows="10"></textarea>
           </div>
 
-        <div class="form-group">
-          <label for="exampleInputEmail1">实体</label>
-          <input type="text" class="form-control" name='kg1' id="exampleInputEmail1"  value={{kg1}}>
-          <!-- <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
-        </div> -->
-        <div class="form-group">
-            <label for="exampleInputEmail1">关系</label>
-            <input type="text" class="form-control" name='kg2' id="exampleInputEmail1" aria-describedby="emailHelp" value={{kg2}}>
-        </div>
-        <div class="form-group">
-          <label for="exampleInputEmail1">关系词root</label>
-          <input type="text" class="form-control" name='kg2_rel' id="exampleInputEmail1" aria-describedby="emailHelp" >
-           <small id="emailHelp" class="form-text text-muted">填写这个对关系进行消歧义.</small>
-      </div>
-        <div class="form-group">
-            <label for="exampleInputEmail1">描述</label>
-            <input type="text" class="form-control" name='kg3' id="exampleInputEmail1" aria-describedby="emailHelp" value={{kg3}}>
-        </div>
         <button type="submit" class="btn btn-primary">Submit</button>
       </form>
-      <ul class="list-group">
-          {% for kg,key,kg_status,rank,rank_class in kgs %}
-          <li class="list-group-item {{rank_class}} check_{{kg_status}}"><a  type="button"   href="/add?s={{sentence}}&kg1={{kg[0]}}&kg2={{kg[1]}}&kg3={{kg[2]}}"  target="new_view_window" class="btn btn-light ">{{kg}}</a><a  type="button"   href="/edit/{{key}}"  target="new_view_window" class="btn btn-light check_{{kg_status}}">{{kg_status}}</a>概率{{rank}}</li>
-          {% endfor %}
-      </ul>
+
+
+
+
+
  
 </div>
+
+
+
+<ul class="list-group">
+  <li class="list-group-item active">列表</li>
+
+
+
+{% for item,kgs,ner_list in items %}
+
+<li class="list-group-item">        <a  type="button"   href="/add?s={{item}}"  target="new_view_window" class="btn btn-light ">{{item}}</a>
+</br>
+  {% for ner in ner_list %}
+
+  <a  type="button"   href="/add?s={{item}}&kg1={{ner}}"  target="new_view_window" class="btn btn-warning ">{{ner}}</a>
+
+  {% endfor %}
+</br>
+
+  {% for kg in kgs %}
+
+  <a  type="button"   href="/add?s={{item}}&kg1={{kg[0]}}&kg2={{kg[1]}}&kg3={{kg[2]}}"  target="new_view_window" class="btn btn-success ">{{kg[0]}},{{kg[1]}},{{kg[2]}}</a>
+
+  {% endfor %}
+
+</li>
+{% endfor %}
+</ul>
+
+
+
 
 </div>
 <!-- 预测提示 -->

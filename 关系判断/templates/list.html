@@ -26,7 +26,7 @@
 </head>
 
 <body>
-  <nav class="navbar  navbar-expand-lg fixed-top navbar-dark bg-primary">
+  <nav class="navbar  navbar-expand-lg  navbar-dark bg-primary">
     <a class="navbar-brand" href="/list?label=2">Ai知识标注工具</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -39,7 +39,12 @@
             更多
           </a>
           <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-            <a class="dropdown-item" href="/list/rel?label=2">关系词</a>
+            <a class="dropdown-item" href="/list/rel?label=2&type=&state=2">关系词(状态2)</a>
+            <a class="dropdown-item" href="/list/rel?label=2&type=&state=1">关系词(状态1)</a>
+            <a class="dropdown-item" href="/list/rel?label=2&type=">关系词(状态None)</a>
+            <a class="dropdown-item" href="/add/text">添加文本</a>
+            <a class="dropdown-item" href="/add/article">添加文章</a>
+            <a class="dropdown-item" href="/add/text">添加文本</a>
             <a class="dropdown-item" href="#">Another action</a>
             <a class="dropdown-item" href="#">Something else here</a>
           </div>
@@ -54,7 +59,6 @@
       <select id="inputState" name="state" class="form-control">
         <option selected value="2">state 2...</option>
         <option  value="1">state 1...</option>
-        <option  value="None">None...</option>
       </select>
       <label for="inputState">label</label>
       <select id="inputState" name="label" class="form-control">
@@ -99,6 +103,8 @@ $(document).on('click', '.upkg', function () {
         //   })
         //   keywords_text=keywords_text+"。"
           $("#"+key+" .label").html(data.label)
+          $("#"+key+" .state").html(data.state)
+          
           $("#"+key).addClass("kgsuccess")
 
         //   // plist(data.items)
@@ -135,18 +141,21 @@ $(document).on('click', '.upkg', function () {
           </h5>
           <!-- <small class="text-muted">3 days ago</small> -->
         </div>
-        <p class="mb-1"><span class="label">{{item['label']}}</span>({{item['ai']}})</p>
+        <p class="mb-1"><span class="label">{{item['label']}}</span></p>
         <p class="mb-1">     
           key:{{k}} <br>
-          状态:{{item['state']}}<br>
+          状态:
+          <span class="state">{{item['state']}}</span>
+          <br>
             预测概率    <br>
           {% for pre in item['pre'] %}
           {{  pre[0]}}  | {{pre[1]}}
           <br>
-            {%- endfor %}</p>
+            {%- endfor %}
+          </p>
         <p class="mb-1">{{item['sentence_mark']}}</p>
-        <a  type="button"   href="/add?s={{item['sentence']}}&kg1={{item['kg'][0]}}&kg2={{item['kg'][1]}}&kg3={{item['kg'][2]}}"  target="new_view_window" class="btn btn-light ">添加</a>
-        <a  type="button"   href="/edit_submit/{{k}}/{{item['label']}}"  target="new_view_window" class="btn btn-light ">编辑</a>
+        <a  type="button" rel="nofollow"   href="/add?s={{item['sentence']}}&kg1={{item['kg'][0]}}&kg2={{item['kg'][1]}}&kg3={{item['kg'][2]}}"  target="new_view_window" class="btn btn-light ">添加</a>
+        <a  type="button" rel="nofollow"   href="/edit_submit/{{k}}/{{item['label']}}"  target="new_view_window" class="btn btn-light ">编辑</a>
         <!-- <small class="text-muted">Donec id elit non mi porta.</small> -->
         <button  type="button" data-value='1' data-key="{{k}}"  class="btn btn-primary btn-lg btn-block upkg">不是</button>
         <button  type="button" data-value='2' data-key="{{k}}"   class="btn btn-secondary btn-lg btn-block upkg">是</button>
@@ -167,7 +176,7 @@ $(document).on('click', '.upkg', function () {
 
  
 <div class="btn-paper" role="" aria-label="B">
-  <a  type="button"   href="/list?label={{request.args['label']}}&keyword={{request.args['keyword']}}&type={{request.args['type']}}&start={{items[-1][0]}}"  class="btn btn-light btn-lg btn-block">下一页</a>
+  <a  type="button"   href="/list?label={{request.args['label']}}&keyword={{request.args['keyword']}}&state={{request.args['state']}}&type={{request.args['type']}}&start={{items[-1][0]}}"  class="btn btn-light btn-lg btn-block">下一页</a>
 </div>
 
   </div>
