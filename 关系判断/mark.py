@@ -800,7 +800,7 @@ def auto_text_pre(path="/mnt/data/dev/github/数据处理工具/tool_data_proces
             # 检查句子是否是标记过的
             key=tt.md5(s)
             if kg.check_marked(key)==True:
-                # print("已经标记句子")
+                print("已经标记句子")
                 continue
             print("\n\n\n\n")
             print("发现数据:",i,"auto成功的数据:",auto_i,"#################标记数据######")
@@ -843,8 +843,9 @@ def auto_text_pre(path="/mnt/data/dev/github/数据处理工具/tool_data_proces
                 #运行自动标注
                 run_re=auto_one(new)
                 if run_re==True:
-                    kg.tdb.load("kg_auto_sentence")
-                    kg.tdb.delete(key)
+                    # kg.tdb.load("kg_auto_sentence")
+                    DB.kg_auto_sentence.delete_one({"_id":key})
+                    # kg.tdb.delete(key)
                     auto_i=auto_i+1
                 # if  softmax[0] >=0.5:
                 #     print("分值过低 忽略")

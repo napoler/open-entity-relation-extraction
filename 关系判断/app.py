@@ -146,7 +146,7 @@ def kg_list_rel():
     # print(label)
     i = 0
     items = {}
-    kg.tdb.load("kg_mark")
+    # kg.tdb.load("kg_mark")
 
     # ss=tkitSearch.Search()
     # keyword=request.args.get('keyword')
@@ -156,15 +156,9 @@ def kg_list_rel():
 
     if label == None or len(label) == 0:
         label = "all"
-    for k, v in kg.tdb.get_all():
-        try:
-            item = kg.tdb.str_dict(v)
-        except:
-            continue
-            pass
-        # if i>=20:
-        #     break
-
+    # for k, v in kg.tdb.get_all():
+    for item in DB.kg_mark.find():
+        k=item['_id']
         if item.get('kg') != None and item.get('state') == state:
             if len(item.get('kg')) == 3:
                 if label == "all":
@@ -217,6 +211,9 @@ def kg_list():
     tp = request.args.get('type')
     state = request.args.get('state')
     check = request.args.get('check')
+    limit=request.args.get('limit')
+    if limit==None:
+        limit=20
     if start == None:
         kg.tdb.load("var")
         try:
@@ -231,67 +228,77 @@ def kg_list():
         state = "2"
     # states=[]
     if label == None or len(label) == 0:
-        label = "all"
+        label = 2
     if keyword == None or len(keyword) == 0:
         print("no kw")
         jump=["目","是",'市镇']
-        for k, v in kg.tdb.get_all(start=start):
-            # print(k)
-            try:
-                item = kg.tdb.str_dict(v)
-            except:
-                pass
-            if i >= 100:
-                kg.tdb.load("var")
-                # kg.tdb.get("list_start")
-                kg.tdb.put_data([('list_start',list_start)])
-                print('list_start',list_start)
-                break
+        # for k, v in kg.tdb.get_all(start=start):
+        q={'check': None,"state":state,'label':int(label)}
+        print('q',q)
+        for item in DB.kg_mark.find(q).limit(int(limit)):
+            k=item['_id']
+            print(item)
+            # try:
+            #     item = kg.tdb.str_dict(v)
+            # except:
+            #     pass
+            # if i >= 100:
+            #     kg.tdb.load("var")
+            #     # kg.tdb.get("list_start")
+            #     kg.tdb.put_data([('list_start',list_start)])
+            #     print('list_start',list_start)
+            #     break
             # 索引数据
             # index_one(k, item)
-            if item.get('kg') != None and item.get('state') == state and item.get('check') == check:
-                # index_one(k, item)
-                #自动跳过
-                if item.get('kg')[1] in jump:
-                    continue
-                print('选择', item)
-                p, pr = pre(item)
-                item['pre'] = pr
-                item['ai'] = p
-                # 自动保存进程
-                item['check'] = True
-                # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
-                kg.mark_sentence(k, item)
+            # if item.get('kg') != None and item.get('state') == state and item.get('check') == check:
+            # if item.get('kg') != None:
+            # index_one(k, item)
+            #自动跳过
+            # if item.get('kg')[1] in jump:
+            #     continue
+            print('选择', item)
+            p, pr = pre(item)
+            item['pre'] = pr
+            item['ai'] = p
+            # 自动保存进程
+            item['check'] = True
+            # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
+            kg.mark_sentence(k, item)
 
-                s = item['sentence']
-                for w in item['kg']:
-                    s = s.replace(w, "<<█"+w+"█>>")
-                item['sentence_mark'] = s
+            s = item['sentence']
+            for w in item['kg']:
+                s = s.replace(w, "<<█"+w+"█>>")
+            item['sentence_mark'] = s
 
-                if label == "all":
-                    items.append((k, item))
-                    i = i+1
-                    list_start=k
-                elif item.get('label') == int(label):
-                    items.append((k, item))
-                    i = i+1
-                    list_start=k
+            if label == "all":
+                items.append((k, item))
+                i = i+1
+                list_start=k
+            elif item.get('label') == int(label):
+                items.append((k, item))
+                i = i+1
+                list_start=k
 
     else:
-        print("kkk")
-        if tp == 'title':
-            result = ss.find_title(keyword)
-        else:
-            result = ss.find(keyword)
-        # print(result)
-        for one in result:
-            v = kg.tdb.get(one['path'])
-            k = one['path']
-            try:
-                item = kg.tdb.str_dict(v)
-            except:
-                continue
-                pass
+        q={'check': None,"kg":keyword,"state":state,'label':int(label)}
+        print('q',q)
+        for item in DB.kg_mark.find(q).limit(int(limit)):
+            k=item['_id']
+            print(item)
+        # print("kkk")
+        # if tp == 'title':
+        #     result = ss.find_title(keyword)
+        # else:
+        #     result = ss.find(keyword)
+        # # print(result)
+        # for one in result:
+            # v = kg.tdb.get(one['path'])
+            # k = one['path']
+            # try:
+            #     item = kg.tdb.str_dict(v)
+            # except:
+            #     continue
+            #     pass
             # if item.get('kg')!=None and item.get('state')=='2':
             if item.get('kg') != None and item.get('state') == state and item.get('check') == check:
                 # 预测内容的概率
@@ -338,9 +345,11 @@ def kg_edit(key):
     """
     # Tclass=classify(model_name_or_path='tkitfiles/checkkg')
     # data=[]
-    kg.tdb.load("kg_mark")
-    data = kg.tdb.get(key)
-    data = kg.tdb.str_dict(data)
+    # kg.tdb.load("kg_mark")
+    # data = kg.tdb.get(key)
+
+    # data = kg.tdb.str_dict(data)
+    data= DB.kg_mark.find_one({'_id':key})
     # 检查是否是合理的知识
     tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
     p = Tclass.pre(tkg)
@@ -447,9 +456,16 @@ def edit_submit(key, label):
     构建训练数据
     """
     # Tclass=classify(model_name_or_path='tkitfiles/checkkg')
-    kg.tdb.load("kg_mark")
-    data = kg.tdb.get(key)
-    data = kg.tdb.str_dict(data)
+    # kg.tdb.load("kg_mark")
+    # data = kg.tdb.get(key)
+    # data = kg.tdb.str_dict(data)
+    data= DB.kg_mark.find_one({'_id':key})
+    if data==None:
+        return "没有key"+key
+   
+    else:
+        pass
+
     data['state'] = '2'
     data["label"] = label
     kg.mark_sentence(key, data)
@@ -631,7 +647,7 @@ def add_submit():
     if info.percent > 90:
         os.kill()
         pass
-    kg.tdb.load("kg_mark")
+    # kg.tdb.load("kg_mark")
     # data=kg.tdb.get(key)
     # data=kg.tdb.str_dict(data)
     sentence = request.args.get('sentence')
@@ -660,7 +676,7 @@ def add_submit():
 
     # if kg2_rel !=None and kg2 !=None:
     #     terry_er.add_entities_one(kg2_rel,kg2,'关系')
-
+    # return "保存"
     return redirect("/edit_submit/"+key+"/2", code=302)
 
 
@@ -675,9 +691,10 @@ def json_edit_submit():
     label = request.args.get('label')
     print(label)
 
-    kg.tdb.load("kg_mark")
-    data = kg.tdb.get(key)
-    data = kg.tdb.str_dict(data)
+    # kg.tdb.load("kg_mark")
+    # data = kg.tdb.get(key)
+    # data = kg.tdb.str_dict(data)
+    data= DB.kg_mark.find_one({'_id':key})
     data['state'] = '2'
     data["label"] = label
     data['check'] = True

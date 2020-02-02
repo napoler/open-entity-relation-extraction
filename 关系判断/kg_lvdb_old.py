@@ -27,8 +27,7 @@ class KgDatabase:
         """
         将json版本保存到数据
         """
-        # self.tdb.load("kg")
-        # Db.kg
+        self.tdb.load("kg")
         tt=tkitText.Text()
         for item in tqdm(self.read_kg()):
             key=tt.md5(item["句子"]+'，'.join(item['知识']))
@@ -36,12 +35,7 @@ class KgDatabase:
                 "sentence":item["句子"],
                 "kg":item['知识']
             }
-            # self.tdb.put_data([(key,data)])
-        data['_id']=key
-        try:
-            DB.kg.insert_one(data)
-        except:
-            pass
+            self.tdb.put_data([(key,data)])
             # self.tdb.put_data([item])
     def auto_sentence(self,key,data):
         """
@@ -53,15 +47,8 @@ class KgDatabase:
         }
            
         """
-        # self.tdb.load("kg_auto_sentence")
-        data['_id']=key
-        try:
-           DB.kg_auto_sentence.insert_one(data)
-        except:
-            print('保存失败',key)
-            DB.kg_auto_sentence.update_one(data)
-            pass
-        # self.tdb.put_data([(key,data)])
+        self.tdb.load("kg_auto_sentence")
+        self.tdb.put_data([(key,data)])
     def index_one(self,k,item):
         """
         添加一个索引
@@ -80,51 +67,20 @@ class KgDatabase:
         }
            
         """
-        # self.tdb.load("kg_mark")
+        self.tdb.load("kg_mark")
         # tt=tkitText.Text()
         # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
         # self.index_one(key,data)
-        # self.tdb.put_data([(key,data)])
-        data['_id']=key
-        # DB.kg_mark(data)
-        # print(DB.kg_mark.insert_one(data).inserted_id)
-        # db.kg_mark.update({'_id': '0f6f5f0a108dc5536ca16c8d994b6773'},   {"$set" : {"check" : False}})
-        
-        old=DB.kg_mark.find_one({"_id":key})
-        new_filed={}
-        for k in data:
-            if old.get(k)==None:
-                new_filed[k]=data[k]
-            
-        if len(new_filed)>=0:
-            print("更新",key)
-            try:
-                # DB.kg_mark.insert_one(data)
-                DB.kg_mark.update_one({'_id': key},   {"$set" :new_filed})  
-                pass
-            except:
-                print("保存失败",key)
-                pass   
-        else:
-            print("新数据",key)
-            try:
-                # DB.kg_mark.insert_one(data)
-                DB.kg_mark.update_one(data)  
-                pass
-            except:
-                print("保存失败",key)
-                pass
-            
+        self.tdb.put_data([(key,data)])
     def get_unmarked_auto_sentence(self):
         """
         获取没有标记的数据
         自动标记数据
         """
-        # self.tdb.load("kg_auto_sentence")
-        
-        for v in DB.kg_auto_sentence.find():
+        self.tdb.load("kg_auto_sentence")
+        for k,v in self.tdb.get_all():
             # print(k)
-            # self.tdb.load("kg_mark")
+            self.tdb.load("kg_mark")
             if self.tdb.get(k)==None:
                 pass
             else:
@@ -173,13 +129,13 @@ class KgDatabase:
 
 
     def check_marked(self,key):
-        # self.tdb.load("kg_mark")
-        # kg=self.tdb.get(key)
-        # print("检查重复",kg)
-        if DB.kg_mark.find({"_id":key}):
-            return True
-        else:
+        self.tdb.load("kg_mark")
+        kg=self.tdb.get(key)
+        print("检查重复",kg)
+        if kg==None:
             return False
+        else:
+            return True
 
     def json_remove_duplicates(self,json_file):
         print("尝试移除重复数据")
