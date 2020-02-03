@@ -91,29 +91,33 @@ class KgDatabase:
         # db.kg_mark.update({'_id': '0f6f5f0a108dc5536ca16c8d994b6773'},   {"$set" : {"check" : False}})
         
         old=DB.kg_mark.find_one({"_id":key})
-        new_filed={}
-        for k in data:
-            if old.get(k)==None:
-                new_filed[k]=data[k]
-            
-        if len(new_filed)>=0:
-            print("更新",key)
-            try:
-                # DB.kg_mark.insert_one(data)
-                DB.kg_mark.update_one({'_id': key},   {"$set" :new_filed})  
-                pass
-            except:
-                print("保存失败",key)
-                pass   
-        else:
+        if old==None:
             print("新数据",key)
             try:
-                # DB.kg_mark.insert_one(data)
-                DB.kg_mark.update_one(data)  
+                DB.kg_mark.insert_one(data)
+                # DB.kg_mark.update_one(data)  
                 pass
             except:
                 print("保存失败",key)
                 pass
+        else:
+            new_filed={}
+            for k in data:
+                if old.get(k)==None:
+                    new_filed[k]=data[k]
+                
+            if len(new_filed)>=0:
+                print("更新",key)
+                try:
+                    # DB.kg_mark.insert_one(data)
+                    DB.kg_mark.update_one({'_id': key},   {"$set" :new_filed})  
+                    pass
+                except:
+                    print("保存失败",key)
+                    pass   
+            else:
+                pass
+
             
     def get_unmarked_auto_sentence(self):
         """
@@ -176,7 +180,8 @@ class KgDatabase:
         # self.tdb.load("kg_mark")
         # kg=self.tdb.get(key)
         # print("检查重复",kg)
-        if DB.kg_mark.find({"_id":key}):
+        # print("检查重复",DB.kg_mark.find_one({"_id":key}))
+        if DB.kg_mark.find_one({"_id":key}):
             return True
         else:
             return False
@@ -269,29 +274,31 @@ class KgDatabase:
         data=[]
         i=0
         n=0
-        self.tdb.load("kg_mark")
+        # self.tdb.load("kg_mark")
         tt=tkitText.Text()
         i=-1
-        for k,v in self.tdb.get_all():
+        for it in DB.kg_mark.find():
+        # for k,v in self.tdb.get_all():
+            k=it["_id"]
             i=i+1
             # print(v)
-            if v==None:
-                n += 1
-            else:
-                try: 
-                    it=self.tdb.str_dict(v)
-                    one={}
-                    one['sentence']=" [kg] "+",".join(it['kg'])+" [/kg] "+it['sentence']
-                    one['label']=it['label']-1
-                    
-                    if int(one['label']) in [0,1] and len(it['kg'])==3  and it.get('check')!=None and it.get('state')=='2':
-                        data.append(one)
-                    else:
-                        # print(it)
-                        pass
-                except:
-                    # self.tdb.load("kg")
-                    continue
+            # if v==None:
+            #     n += 1
+            # else:
+            try: 
+                # it=self.tdb.str_dict(v)
+                one={}
+                one['sentence']=" [kg] "+",".join(it['kg'])+" [/kg] "+it['sentence']
+                one['label']=it['label']-1
+                
+                if int(one['label']) in [0,1] and len(it['kg'])==3  and it.get('check')!=None and it.get('state')=='2':
+                    data.append(one)
+                else:
+                    # print(it)
+                    pass
+            except:
+                # self.tdb.load("kg")
+                continue
         c=int(len(data)*0.85)
         print("总数据",len(data),i,n)
         kgjson_t.save(data[:c])
@@ -346,12 +353,14 @@ class KgDatabase:
         值保存标记为yes的数据
         并且对数据进行合并 
         """
-        self.tdb.load("kg_mark")
+        # self.tdb.load("kg_mark")
         tt=tkitText.Text()
         i=-1
-        for k,v in self.tdb.get_all():
+        for it in DB.kg_mark.find():
+        # for k,v in self.tdb.get_all():
+            k=it["_id"]
             try: 
-                it=self.tdb.str_dict(v)
+                # it=self.tdb.str_dict(v)
                 # if it['label']-1!=1 or it['state']!='2':
                 if it['label']-1!=1 or it['state']!='2' or  it.get('check')==None or len(it['kg'])!=3:
                     continue
@@ -364,37 +373,33 @@ class KgDatabase:
                         # print(it)
             kgs=[]
             key = tt.md5(it['sentence']+str(it['kg'][0])+str(it['kg'][1]))
-            self.tdb.load("kg_mark_unique_data")
-            kg=self.tdb.get(key)
+            # self.tdb.load("kg_mark_unique_data")
+            # kg=self.tdb.get(key)
 
+            kg=DB.kg_mark_unique_data.find_one({"_id":key})
+            # print("kg",kg)
             if kg==None:
+                # 新建
+                print("新建")
                 if len(it['kg'])==3:
-                   kgs.append(it['kg'])
-                # print('111')
+                    kgs.append(it['kg'])
+                    one={"_id":key,'sentence':it['sentence'],'kgs':kgs}
+                    DB.kg_mark_unique_data.insert_one(one)
             else:
-                # print("222222222222")
-                try:
-                    # print('kgs',kg) 
-                    kg=self.tdb.str_dict(kg) 
-                    kgs=kg['kgs']
-                    if len(it['kg'])==3:
-                        kgs.append(it['kg'])
-                except:
-                    pass
-            # print(kgs)
-            one={'sentence':it['sentence'],'kgs':kgs}
-            # print(one)
-            self.tdb.put(key,one)
-            self.tdb.load("kg_mark")
+                # 更新
+                print("更新")
+                kgs=kg['kgs']
+                if len(it['kg'])==3 and it['kg'] not in kgs:
+                    kgs.append(it['kg'])
+                one={"_id":key,'sentence':it['sentence'],'kgs':kgs}
+                # print(one)
+                # self.tdb.put(key,one)
+                # self.tdb.load("kg_mark")
+                DB.kg_mark_unique_data.update_one({"_id":key},{"$set" :one})
             i=i+1
         print("总共",i)
     def clear_unique_data(self):
-        self.tdb.load("kg_mark_unique_data")
-        for k,v in self.tdb.get_all():
-            try:
-                self.tdb.delete(k)
-            except:
-                print("删除失败")
+        DB.kg_mark_unique_data.drop()
 
 
     def get_key(self,data):
@@ -476,13 +481,15 @@ class KgDatabase:
         kgjson_t=tkitFile.Json("../tdata/ner_rel/train.json")
         kgjson_d=tkitFile.Json("../tdata/ner_rel/dev.json")
         # kgjson_l=tkitFile.Json("../tdata/labels.json")
-        self.tdb.load("kg_mark_unique_data")
+        # self.tdb.load("kg_mark_unique_data")
         data=[]
         all_data_id=[]
-        for k,v in self.tdb.get_all():
+        # for k,v in self.tdb.get_all():
+        for it in DB.kg_mark_unique_data.find():
             # print("k",k)
+            k=it['_id']
             try: 
-                it=self.tdb.str_dict(v)
+                # it=self.tdb.str_dict(v)
                 # print("it",it)
                 
                 ner={}
@@ -545,10 +552,11 @@ class KgDatabase:
         nlp_plus=tkitNlp.Plus()
         nlp_plus.load_tlp()
         flags={}
-        for k,v in self.tdb.get_all():
+        for it in DB.kg_mark_unique_data.find():
             # print("k",k)
+            k=it['_id']
             try: 
-                it=self.tdb.str_dict(v)
+                # it=self.tdb.str_dict(v)
                 text=it['sentence']
                 # print("it",it)
                 label= ["O"]*len(text)
@@ -611,13 +619,14 @@ class KgDatabase:
         kgjson_d=tkitFile.Json("../tdata/kg/dev.json")
         # kgjson_l=tkitFile.Json("../tdata/labels.json")
         
-        self.tdb.load("kg_mark_unique_data")
+        # self.tdb.load("kg_mark_unique_data")
         data=[]
         all_data_id=[]
-        for k,v in self.tdb.get_all():
+        for it in DB.kg_mark_unique_data.find():
             # print("k",k)
+            k=it['_id']
             try: 
-                it=self.tdb.str_dict(v)
+                # it=self.tdb.str_dict(v)
                 # print("it",it)
                 label=['O']*len(it['sentence'])
                 s=0

@@ -203,6 +203,7 @@ def kg_list():
     i = 0
     items = []
     
+    
 
     ss = tkitSearch.Search()
     keyword = request.args.get('keyword')
@@ -213,7 +214,7 @@ def kg_list():
     check = request.args.get('check')
     limit=request.args.get('limit')
     if limit==None:
-        limit=20
+        limit=100
     if start == None:
         kg.tdb.load("var")
         try:
@@ -330,6 +331,10 @@ def kg_list():
 
     # if item.get('kg')==None or len(item.get('kg'))==0:
     if len(items) > 0:
+        q={'check': True}
+        checked=DB.kg_mark.find(q).count()
+        q={'check': None,"state":state}
+        uncheck=DB.kg_mark.find(q).count()
         return render_template("list.html", **locals())
     else:
         return "没有数据"
@@ -350,6 +355,7 @@ def kg_edit(key):
 
     # data = kg.tdb.str_dict(data)
     data= DB.kg_mark.find_one({'_id':key})
+    print("获取data",data)
     # 检查是否是合理的知识
     tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
     p = Tclass.pre(tkg)
