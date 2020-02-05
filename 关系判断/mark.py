@@ -201,8 +201,9 @@ def auto_one(item):
     print('知识:',item['kg'])
     print("~~~~~"*3)
     #检查是否是合理的知识
-    tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
-    p=Tclass.pre(tkg)
+    # tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
+    # p=Tclass.pre(tkg)
+    p = Tclass.pre(item['sentence'],",".join(item['kg']))
     softmax=Tclass.softmax()
     Tclass.release()
     print("------------------")
@@ -341,8 +342,9 @@ def one(item):
     print("~~~~~"*3)
 
     #检查是否是合理的知识
-    tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
-    p=Tclass.pre(tkg)
+    # tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
+    # p=Tclass.pre(tkg)
+    p = Tclass.pre(item['sentence'],",".join(item['kg']))
     softmax=Tclass.softmax()
     Tclass.release()
     print("分类","|",'概率')
@@ -1055,8 +1057,9 @@ def run_recheck(label=2,state='1',check_type=0):
             print("-------------------------------------------------------------------")
 
             #检查是否是合理的知识
-            tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
-            p=Tclass.pre(tkg)
+            # tkg="[kg] "+",".join(item['kg'])+" [/kg] "+item['sentence']
+            # p=Tclass.pre(tkg)
+            p = Tclass.pre(item['sentence'],",".join(item['kg']))
             softmax=Tclass.softmax()
             Tclass.release()
             print("分类","|",'概率')

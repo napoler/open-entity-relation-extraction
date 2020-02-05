@@ -107,15 +107,16 @@ def pre(data):
     """
     获取预测结果
     """
-    tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
-    p = Tclass.pre(tkg)
+    # tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
+    data['sentence_b']=",".join(data['kg'])
+    p = Tclass.pre(data['sentence'], data['sentence_b'])
     softmax = Tclass.softmax()
     Tclass.release
     print("分类", "|", '概率')
     pre = []
     for ck, rank in zip([1, 2], softmax):
         print(ck, "|", rank)
-        pre.append([ck, rank])
+        pre.append([ck, round(rank, 4)])
     # del Tclass
     gc.collect()
     return p+1, pre
@@ -153,13 +154,18 @@ def kg_list_rel():
     # start=request.args.get('start')
     label = request.args.get('label')
     state = request.args.get('state')
+    check = request.args.get('check')
+    if check!=None or check=='':
+        check=True
 
     if label == None or len(label) == 0:
         label = "all"
     # for k, v in kg.tdb.get_all():
-    for item in DB.kg_mark.find():
+    q={'check': check,"state":state,'label':int(label)}
+    print('q',q)
+    for item in DB.kg_mark.find(q):
         k=item['_id']
-        if item.get('kg') != None and item.get('state') == state:
+        if item.get('kg') != None:
             if len(item.get('kg')) == 3:
                 if label == "all":
                     # items.append(item['kg'][1])
@@ -176,7 +182,7 @@ def kg_list_rel():
                         items[item['kg'][1]] = items[item['kg'][1]]+1
                     i = i+1
     new = []
-    print(items)
+    # print(items)
     for word in items.keys():
         new.append((word, items[word]))
     new.sort(key=takeSecond, reverse=True)
@@ -212,18 +218,21 @@ def kg_list():
     tp = request.args.get('type')
     state = request.args.get('state')
     check = request.args.get('check')
+    if check!=None or check=='':
+        check=True
     limit=request.args.get('limit')
     if limit==None:
-        limit=100
+        limit=200
     if start == None:
-        kg.tdb.load("var")
-        try:
-            start=kg.tdb.get("list_start")
-        except:
-            pass
+        # kg.tdb.load("var")
+        # try:
+        #     start=kg.tdb.get("list_start")
+        # except:
+        #     pass
+        pass
     print("start",start)
 
-    kg.tdb.load("kg_mark")
+    # kg.tdb.load("kg_mark")
     print(state)
     if state == None:
         state = "2"
@@ -234,7 +243,7 @@ def kg_list():
         print("no kw")
         jump=["目","是",'市镇']
         # for k, v in kg.tdb.get_all(start=start):
-        q={'check': None,"state":state,'label':int(label)}
+        q={'check': check,"state":state,'label':int(label)}
         print('q',q)
         for item in DB.kg_mark.find(q).limit(int(limit)):
             k=item['_id']
@@ -263,12 +272,13 @@ def kg_list():
             item['ai'] = p
             # 自动保存进程
             item['check'] = True
+            item['state'] ='2'
             # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
             kg.mark_sentence(k, item)
 
             s = item['sentence']
-            for w in item['kg']:
-                s = s.replace(w, "<<█"+w+"█>>")
+            for i,w in enumerate(item['kg']):
+                s = s.replace(w, "<span class='kg_"+str(i)+"'>"+w+"</span>")
             item['sentence_mark'] = s
 
             if label == "all":
@@ -281,11 +291,11 @@ def kg_list():
                 list_start=k
 
     else:
-        q={'check': None,"kg":keyword,"state":state,'label':int(label)}
+        q={'check': check,"kg":keyword,"state":state,'label':int(label)}
         print('q',q)
         for item in DB.kg_mark.find(q).limit(int(limit)):
             k=item['_id']
-            print(item)
+            # print(item)
         # print("kkk")
         # if tp == 'title':
         #     result = ss.find_title(keyword)
@@ -302,18 +312,22 @@ def kg_list():
             #     pass
             # if item.get('kg')!=None and item.get('state')=='2':
             if item.get('kg') != None and item.get('state') == state and item.get('check') == check:
-                # 预测内容的概率
-                p, pr = pre(item)
-                item['pre'] = pr
-                item['ai'] = p
+                # # 预测内容的概率
+                # p, pr = pre(item)
+                # item['pre'] = pr
+                # item['ai'] = p
+                item['pre'] = [(0,1),(0,1)]
+                item['ai'] = 2
                 # 自动保存进程
                 item['check'] = True
+                item['state'] ='2'
+                print("保存数据",item)
                 # key=tt.md5(item["sentence"]+'，'.join(item['kg']))
                 kg.mark_sentence(k, item)
 
                 s = item['sentence']
-                for w in item['kg']:
-                    s = s.replace(w, "<<█"+w+"█>>")
+                for i,w in enumerate(item['kg']):
+                    s = s.replace(w, "<span class='kg_"+str(i)+"'>"+w+"</span>")
                 item['sentence_mark'] = s
 
                 if label == "all":
@@ -331,7 +345,7 @@ def kg_list():
 
     # if item.get('kg')==None or len(item.get('kg'))==0:
     if len(items) > 0:
-        q={'check': True}
+        q={'check': True,"state":'2'}
         checked=DB.kg_mark.find(q).count()
         q={'check': None,"state":state}
         uncheck=DB.kg_mark.find(q).count()
@@ -357,15 +371,17 @@ def kg_edit(key):
     data= DB.kg_mark.find_one({'_id':key})
     print("获取data",data)
     # 检查是否是合理的知识
-    tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
-    p = Tclass.pre(tkg)
+    # tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
+    # p = Tclass.pre(tkg)
+
+    p = Tclass.pre(data['sentence'],",".join(kg_one))
     softmax = Tclass.softmax()
     Tclass.release()
     print("分类", "|", '概率')
     pre = []
     for ck, rank in zip([1, 2], softmax):
-        print(ck, "|", rank)
-        pre.append([ck, rank])
+        print(ck, "|",  round(rank, 4))
+        pre.append([ck,  round(rank, 4)])
     data['pre'] = pre
     data['ai'] = p+1
     data['key'] = key
@@ -431,15 +447,15 @@ def page(key):
     data = kg.tdb.get(key)
     data = kg.tdb.str_dict(data)
     # 检查是否是合理的知识
-    tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
-    p = Tclass.pre(tkg)
+    # tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
+    p = Tclass.pre(data['sentence'],",".join(data['kg']))
     softmax = Tclass.softmax()
     Tclass.release()
     print("分类", "|", '概率')
     pre = []
     for ck, rank in zip([1, 2], softmax):
         print(ck, "|", rank)
-        pre.append([ck, rank])
+        pre.append([ck,  round(rank, 4)])
     data['pre'] = pre
     data['ai'] = p
     data['key'] = key
@@ -477,15 +493,16 @@ def edit_submit(key, label):
     kg.mark_sentence(key, data)
 
     # 检查是否是合理的知识
-    tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
-    p = Tclass.pre(tkg)
+    # tkg = "[kg] "+",".join(data['kg'])+" [/kg] "+data['sentence']
+    data['sentence_b']=",".join(data['kg'])
+    p = Tclass.pre(data['sentence'],data['sentence_b'])
     softmax = Tclass.softmax()
     Tclass.release()
     print("分类", "|", '概率')
     pre = []
     for ck, rank in zip([1, 2], softmax):
         print(ck, "|", rank)
-        pre.append([ck, rank])
+        pre.append([ck,  round(rank, 4)])
     data['pre'] = pre
     data['ai'] = p
     data['key'] = key
@@ -611,8 +628,10 @@ def add():
         # kg_status=kg.check_marked(key)
 
         # 检查是否是合理的知识
-        tkg = "[kg] "+",".join(kg_one)+" [/kg] "+data['sentence']
-        p = Tclass.pre(tkg)
+        # tkg = "[kg] "+",".join(kg_one)+" [/kg] "+data['sentence']
+        # p = Tclass.pre(tkg)
+        data['sentence_b']=",".join(kg_one)
+        p = Tclass.pre(data['sentence'],data['sentence_b'])
         softmax = Tclass.softmax()
         Tclass.release()
         # print("分类","|",'概率')
@@ -629,7 +648,7 @@ def add():
                     (kg_one, key, 'False', softmax[1],  "rank_"+str(int(round(softmax[1], 1)*10))))
         del p
         del softmax
-        del tkg
+        # del tkg
         gc.collect()
 
     # del p

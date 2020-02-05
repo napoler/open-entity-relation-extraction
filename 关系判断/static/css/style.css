@@ -20,3 +20,15 @@ div#list_all {
 .check_True {
     background: #cac4c4;
 }
+.kg_0{
+margin: 0 10px;
+background-color: #85d847;
+}
+.kg_1{
+    margin: 0 10px;
+    background-color: red;   
+}
+.kg_2{
+    margin: 0 10px;
+    background-color: chocolate;      
+}

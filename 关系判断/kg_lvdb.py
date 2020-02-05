@@ -8,13 +8,13 @@ from tqdm import tqdm
 import os
 import shutil
 import json
-
+import  random
 from  config import *
 class KgDatabase:
     def __init__(self):
         tkitFile.File().mkdir("../tdata")
         
-        self.tdb= tkitDb.LDB(path="../tdata/lv.db")
+        # self.tdb= tkitDb.LDB(path="../tdata/lv.db")
         self.ss=tkitSearch.Search()
         pass
     def read_kg(self):
@@ -93,6 +93,7 @@ class KgDatabase:
         old=DB.kg_mark.find_one({"_id":key})
         if old==None:
             print("新数据",key)
+            print('new_filed',data)
             try:
                 DB.kg_mark.insert_one(data)
                 # DB.kg_mark.update_one(data)  
@@ -101,11 +102,12 @@ class KgDatabase:
                 print("保存失败",key)
                 pass
         else:
-            new_filed={}
-            for k in data:
-                if old.get(k)==None:
-                    new_filed[k]=data[k]
-                
+            # new_filed={}
+            # for k in data:
+            #     if old.get(k)==None:
+            #         new_filed[k]=data[k]
+            new_filed=data        
+            print('new_filed',new_filed)
             if len(new_filed)>=0:
                 print("更新",key)
                 try:
@@ -262,14 +264,28 @@ class KgDatabase:
         #自动处理重复标记问题
         self.json_remove_duplicates("../tdata/data/train.json")
         print("已经将数据导出到 ../tdata/data")
+    def random_text_clip(self,text):
+        """
+        随机生成字符串片段
+        """
+        vlen=len(text)
+        a=random.randint(0,vlen)
+        b=random.randint(0,vlen)
+        while a !=b:
+            break
+            b=random.randint(0,vlen)
 
+        if a>b:
+            return text[b:a]
+        else:
+            return text[a:b]
     def save_to_json(self):
         """
         可以用于测试知识是否是合理的
         """
         kgjson_t=tkitFile.Json("../tdata/kg_check/train.json")
         kgjson_d=tkitFile.Json("../tdata/kg_check/dev.json")
-        kgjson_l=tkitFile.Json("../tdata/kg_check/labels.json")
+        # kgjson_l=tkitFile.Json("../tdata/kg_check/labels.json")
         # self.tdb.load("kg_mark")
         data=[]
         i=0
@@ -277,10 +293,11 @@ class KgDatabase:
         # self.tdb.load("kg_mark")
         tt=tkitText.Text()
         i=-1
-        for it in DB.kg_mark.find():
+        q={'check': True,'state':'2'}
+        for it in DB.kg_mark.find(q):
         # for k,v in self.tdb.get_all():
             k=it["_id"]
-            i=i+1
+            n=n+1
             # print(v)
             # if v==None:
             #     n += 1
@@ -288,13 +305,52 @@ class KgDatabase:
             try: 
                 # it=self.tdb.str_dict(v)
                 one={}
-                one['sentence']=" [kg] "+",".join(it['kg'])+" [/kg] "+it['sentence']
+                # one['sentence']=" [kg] "+",".join(it['kg'])+" [/kg] "+it['sentence']
+                one['sentence']=it['sentence']
+                one['sentence_b']=",".join(it['kg'])
                 one['label']=it['label']-1
                 
                 if int(one['label']) in [0,1] and len(it['kg'])==3  and it.get('check')!=None and it.get('state')=='2':
                     data.append(one)
+
+                    for i,sentence in enumerate( it['kg']):
+                        # print('111')
+                        if i!=2:
+                            continue
+
+                        new=self.random_text_clip(sentence)
+                        # print(new)
+                        if new not in it['kg']:
+                            new_one=it.copy()
+                            # print(new_one)
+                            new_one['kg'][i]=new
+                            one={}
+                            # one['sentence']=" [kg] "+",".join(new_one['kg'])+" [/kg] "+new_one['sentence']
+                            one['sentence']=it['sentence']
+                            one['sentence_b']=",".join(new_one['kg'])
+                            one['label']=0
+                            data.append(one)
+                            # print('new_one',one)
+                            
+                    # for i in range(3):
+                    #     # print('111')
+                    #     new=self.random_text_clip(it['sentence'])
+                    #     # print(new)
+                    #     if new not in it['kg']:
+                    #         new_one=it.copy()
+                    #         # print(new_one)
+                    #         new_one['kg'][i]=new
+                    #         one={}
+                    #         # one['sentence']=" [kg] "+",".join(new_one['kg'])+" [/kg] "+new_one['sentence']
+                    #         one['sentence']=it['sentence']
+                    #         one['sentence_b']=",".join(new_one['kg'])
+                    #         one['label']=0
+                    #         data.append(one)
+                    #         print('new_one',one)
+
+
                 else:
-                    # print(it)
+                    print(it)
                     pass
             except:
                 # self.tdb.load("kg")
@@ -356,8 +412,11 @@ class KgDatabase:
         # self.tdb.load("kg_mark")
         tt=tkitText.Text()
         i=-1
-        for it in DB.kg_mark.find():
+        n=0
+        q={'check': True,'state':'2'}
+        for it in DB.kg_mark.find(q):
         # for k,v in self.tdb.get_all():
+            n=n+1
             k=it["_id"]
             try: 
                 # it=self.tdb.str_dict(v)
@@ -380,14 +439,14 @@ class KgDatabase:
             # print("kg",kg)
             if kg==None:
                 # 新建
-                print("新建")
+                # print("新建")
                 if len(it['kg'])==3:
                     kgs.append(it['kg'])
                     one={"_id":key,'sentence':it['sentence'],'kgs':kgs}
                     DB.kg_mark_unique_data.insert_one(one)
             else:
                 # 更新
-                print("更新")
+                # print("更新")
                 kgs=kg['kgs']
                 if len(it['kg'])==3 and it['kg'] not in kgs:
                     kgs.append(it['kg'])
@@ -398,6 +457,7 @@ class KgDatabase:
                 DB.kg_mark_unique_data.update_one({"_id":key},{"$set" :one})
             i=i+1
         print("总共",i)
+        print("总共",n)
     def clear_unique_data(self):
         DB.kg_mark_unique_data.drop()
 
@@ -653,6 +713,17 @@ class KgDatabase:
         self.json_remove_duplicates("../tdata/kg/train.json")
         self.json_remove_duplicates("../tdata/kg/dev.json")
         print("已经将数据导出到 ../tdata/kg")
+    def updata_test(self):
+        """
+        修正之前数据
+        """
+        q={'check': True,"state":'4'}
+        print('q',q)
+        for item in DB.kg_mark.find(q):
+            k=item['_id']
+            item['state'] ='2'
+            print("保存数据",item)
+            kg.mark_sentence(k, item)
 if __name__ == '__main__':
 
     while True:
@@ -697,6 +768,8 @@ if __name__ == '__main__':
             kg.save_to_json_backup()
         elif x==9:
             kg.updata_key()
+        elif x==10:
+            kg.updata_test()
         else:
             print("输入有误")
             

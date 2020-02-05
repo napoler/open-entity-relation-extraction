@@ -55,10 +55,16 @@
     </div>
 
     <form class="form-inline my-2 my-lg-0" action="/list" method="get">
+      <label for="inputState">check</label>
+      <select id="inputState" name="check" class="form-control">
+        <option selected value="">状态None.</option>
+        <option  value="True">状态True...</option>
+      </select>
       <label for="inputState">state</label>
       <select id="inputState" name="state" class="form-control">
         <option selected value="2">state 2...</option>
         <option  value="1">state 1...</option>
+        <option  value="4">state 3...</option>
       </select>
       <label for="inputState">label</label>
       <select id="inputState" name="label" class="form-control">
@@ -135,7 +141,7 @@ $(document).on('click', '.upkg', function () {
  
             <!-- {{item['kg']}} -->
             
-            {% for kg in item['kg'] %}
+            {% for kg in  item['kg'] %}
 
             <a  type="button"   href="/list?state=2&keyword={{kg}}"  class="kg_rel">{{kg}}</a>__
 
@@ -151,12 +157,12 @@ $(document).on('click', '.upkg', function () {
           <span class="state">{{item['state']}}</span>
           <br>
             预测概率    <br>
-          {% for pre in item['pre'] %}
-          {{  pre[0]}}  | {{pre[1]}}
+ 
+          {{   item['pre'][1] [0]}}  | {{ item['pre'][1] [1]}}
           <br>
-            {%- endfor %}
+ 
           </p>
-        <p class="mb-1">{{item['sentence_mark']}}</p>
+        <p class="mb-1">{{item['sentence_mark']  | safe }}}</p>
         <a  type="button" rel="nofollow"   href="/add?s={{item['sentence']}}&kg1={{item['kg'][0]}}&kg2={{item['kg'][1]}}&kg3={{item['kg'][2]}}"  target="new_view_window" class="btn btn-light ">添加</a>
         <a  type="button" rel="nofollow"   href="/edit_submit/{{k}}/{{item['label']}}"  target="new_view_window" class="btn btn-light ">编辑</a>
         <!-- <small class="text-muted">Donec id elit non mi porta.</small> -->
