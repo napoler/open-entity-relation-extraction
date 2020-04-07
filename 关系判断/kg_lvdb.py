@@ -536,6 +536,87 @@ class KgDatabase:
         # print("kg_mark",kg_mark_all,kg_mark)
         # print("kg",kg_all,kg)
         # print("kg_auto_sentence",kg_auto_sentence_all,kg_auto_sentence)
+ 
+    def save_to_json_SQuAD(self):
+
+        tkitFile.File().mkdir("../tdata/SQuAD")
+        kgjson_t=tkitFile.Json("../tdata/SQuAD/train.json")
+        kgjson_d=tkitFile.Json("../tdata/SQuAD/dev.json")
+        data=[]
+        all_data_id=[]
+        for it in DB.kg_mark_unique_data.find():
+            k=it['_id']
+            ner={}
+
+
+            one_q={
+                "id":k+"_s",
+                "context":it['sentence'],
+                "qas":[]
+            }
+            for one in it['kgs']:
+                try:
+                    if one[1] not in ner[one[0]]:
+                        ner[one[0]].append(one[1])
+                except:
+                    ner[one[0]]=[one[1]]
+            answers=[]
+            for nr in ner:
+                s=0
+                
+                label=['O']*len(it['sentence'])
+                # print(ner[nr])
+                for n in ner[nr]:
+                    try:
+                        label,s1=self.mark_word_label(it['sentence'],label,n,"关系")
+                        if s1>=0:
+                            answers_one={
+                                "answer_start": s1,
+                                "text": n
+                            }
+                            answers.append(answers_one)
+                    except:
+                        pass
+                if len(answers)>0:
+                    # #构造一条ner预测数据
+                    one_q['qas'].append({
+                        "question":nr,
+                        'id':k+"_ner_rel_"+nr,
+                        'answers':answers
+                        
+                    })
+            if len(one_q['qas'])>0:
+                one_kg={
+                    'paragraphs':[one_q],
+                    'id':k+"_kg",
+                    'title':it['sentence'][:10]
+                }
+                # print((one_kg))
+                data.append(one_kg)
+ 
+        
+        # data=data[0:1000]
+        c=int(len(data)*0.85)
+        t=data[:c]
+        d=data[c:]
+        t_data={  
+            "version": "v1.0", 
+            "data": t
+        }
+        d_data={  
+            "version": "v1.0", 
+            "data": d
+        }
+
+        
+        kgjson_t.save([t_data])
+        kgjson_d.save([d_data])
+        print("总共生成数据",len(data))
+        #自动处理重复标记问题
+        # self.json_remove_duplicates("../tdata/SQuAD/train.json")
+        # self.json_remove_duplicates("../tdata/SQuAD/dev.json")
+        print("已经将数据导出到 ../tdata/SQuAD")
+ 
     def save_to_json_ner_rel(self):
         tkitFile.File().mkdir("../tdata/ner")
         kgjson_t=tkitFile.Json("../tdata/ner_rel/train.json")
@@ -739,6 +820,7 @@ if __name__ == '__main__':
         7 保存ner数据集      
         8 将所有数据保存为json 备份  
         9 更新key
+        11 生成SQuAD训练样本
         """)
         x=input("输入命令：")
         try:
@@ -770,6 +852,8 @@ if __name__ == '__main__':
             kg.updata_key()
         elif x==10:
             kg.updata_test()
+        elif x==11:
+            kg.save_to_json_SQuAD()
         else:
             print("输入有误")
             

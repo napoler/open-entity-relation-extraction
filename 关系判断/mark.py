@@ -25,10 +25,6 @@ from config import *
 
 
 
-
-
-
-
 kg=KgDatabase()
 # ht0 = HarvestText()
 tfile=tkitFile.File()
@@ -630,7 +626,7 @@ def pre_kg_clear(text):
     ner_list=ner_plus(text)
 
     #基于已存在的词典获取关系词
-    # terry_er=TEntityRel()
+    terry_er=TEntityRel()
     entity_words,rel=Terry_er.get_entity_rel(text)
     # del terry_er
     # gc.collect()
@@ -702,7 +698,7 @@ def pre_kg(text):
     print("句子",text)
     ner_list=ner_plus(text)
 
-
+    terry_er=TEntityRel()
     entity_words,rel=terry_er.get_entity_rel(text)
     # terry_er.release() 
     # del terry_er
@@ -712,8 +708,9 @@ def pre_kg(text):
     kgs=[] #返回提取的知识列表
     for n in ner_list:
         vs=get_Relationship(text,n)
-        print('Ai预测关系词',vs)
-        vs=rel+vs #累加如关系词
+        # print('Ai预测关系词',vs)
+        # vs=rel+vs #累加如关系词
+        # vs=rel
         vs=list(set(vs))
         
         print("关系词",n,vs)

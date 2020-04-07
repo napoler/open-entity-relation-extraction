@@ -14,7 +14,7 @@ def get_p():
     P.args['load_path'] = "tkitfiles/v0.1/pytorch_model.bin"
     P.args['vocab'] = "tkitfiles/v0.1/vocab.txt"
     P.args['label_file'] = "tkitfiles/v0.1/tag.txt"
-    P.args['max_length'] = 50
+    P.args['max_length'] = 200
     P.setconfig()
     return P
 
@@ -28,17 +28,17 @@ def get_tner():
     TNer.args['label_file'] = "tkitfiles/ner_rel/tag.txt"
     TNer.args['albert_path'] = "tkitfiles/ner_rel"
     TNer.args['albert_embedding'] = 312
-    TNer.args['rnn_hidden'] = 400
+    TNer.args['rnn_hidden'] = 500
+    # TNer.args['rnn_hidden'] = 800
 
     TNer.model_version = 'ner_rel'
-    TNer.args['max_length'] = 50
+    TNer.args['max_length'] = 200
     TNer.setconfig()
     return TNer
 
 
 def get_ner():
     # 初始化提取实体
-
     Ner = Pre()
     Ner.args['conf'] = "tkitfiles/ner/config.json"
     Ner.args['load_path'] = "tkitfiles/ner/pytorch_model.bin"
@@ -49,7 +49,7 @@ def get_ner():
     Ner.args['rnn_hidden'] = 400
 
     Ner.model_version = 'ner'
-    Ner.args['max_length'] = 50
+    Ner.args['max_length'] = 200
     Ner.setconfig()
     return Ner
 
@@ -59,9 +59,9 @@ TNer = get_tner()
 Ner = get_ner()
 P = get_p()
 
-Tclass = classify(model_name_or_path='tkitfiles/checkkg')
+Tclass = classify(model_name_or_path='tkitfiles/checkkg',device='cpu')
 # 检查是不是知识
-Check_kg = classify(model_name_or_path='../tdata/albert_check_kg')
+Check_kg = classify(model_name_or_path='../tdata/albert_check_kg',device='cpu')
 # check_pet=classify(model_name_or_path='../tdata/albert-chinese-pytorch-pet')
 
 

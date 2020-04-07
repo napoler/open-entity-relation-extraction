@@ -222,7 +222,7 @@ def kg_list():
         check=True
     limit=request.args.get('limit')
     if limit==None:
-        limit=200
+        limit=20
     if start == None:
         # kg.tdb.load("var")
         # try:
@@ -541,9 +541,18 @@ def add_article():
             if len(item) > 10:
                 ner_list = ner_plus(item)
                 onlykgs = []
+                goodkgs=[]
                 if len(ner_list) > 0:
                     onlykgs = pre_kg(item)
-                items.append((item, onlykgs, ner_list))
+                    
+                    for kg in onlykgs:
+                        p,s =pre({'sentence':item,'kg':kg})
+                        print(s)
+                        if s[1][1]>0.8:
+                            goodkgs.append(kg+[str(s[1][1])])
+
+
+                items.append((item, goodkgs, ner_list))
 
         return render_template("add_article.html", **locals())
 # @app.route('/add_submit/text',methods=[ 'GET'])
@@ -613,14 +622,28 @@ def add():
         kg2 = ''
     if kg3 == None:
         kg3 = ''
+
+    kgs=[]
     onlykgs = pre_kg(sentence)
+
+    #ai预测知识
+    mark_sentence=kg1+"#"+kg2+"#"+sentence
+    print('mark_sentence',mark_sentence)
+    result=P.pre([mark_sentence])
+    print("预测",result)
+    for item in result[0][1]:
+        if item['type']=="描述":
+            onlykgs.append( [kg1, kg2, item['words']])
+            print("预测知识:", [kg1, kg2, item['words']])
+  
     data = {'sentence': sentence, 'kg': [kg1, kg2, kg3]
             }
     # pre(data)
     p, pr = pre(data)
     data['pre'] = pr
     data['ai'] = p
-    kgs = []
+
+    # kgs=pre_kgs
     for kg_one in onlykgs:
         # data['kg']=kg
         key = tt.md5(data["sentence"]+'，'.join(kg_one))  

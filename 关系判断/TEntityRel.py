@@ -144,17 +144,17 @@ class TEntityRel:
         for span, entity in self.tt.ht.entity_linking(para):
             print(span, entity)
 
-terry_er=TEntityRel()
+# terry_er=TEntityRel()
 
-para="""
-何引丽是中国内蒙古自治区包头市人，中华人民共和国田径运动员
-"""
+# para="""
+# 何引丽是中国内蒙古自治区包头市人，中华人民共和国田径运动员
+# """
 
-# #添加实体词和冠词
-# terry_er.add_entities_one("寿命",'寿1命','关系')
-# terry_er.add_entities_one("边境牧羊犬",'边境牧羊犬','实体')
-# terry_er.entity_mention_dict,entity_type_dict)
-entity_words,rel=terry_er.get_entity_rel(para)
-print(rel)
-print(entity_words)
+# # #添加实体词和冠词
+# # terry_er.add_entities_one("寿命",'寿1命','关系')
+# # terry_er.add_entities_one("边境牧羊犬",'边境牧羊犬','实体')
+# # terry_er.entity_mention_dict,entity_type_dict)
+# entity_words,rel=terry_er.get_entity_rel(para)
+# print(rel)
+# print(entity_words)
 
