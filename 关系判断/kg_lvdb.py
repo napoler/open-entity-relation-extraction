@@ -14,7 +14,7 @@ class KgDatabase:
     def __init__(self):
         tkitFile.File().mkdir("../tdata")
         
-        # self.tdb= tkitDb.LDB(path="../tdata/lv.db")
+        self.tdb= tkitDb.LDB(path="../tdata/lv.db")
         self.ss=tkitSearch.Search()
         pass
     def read_kg(self):
