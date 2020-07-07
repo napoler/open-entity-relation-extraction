@@ -376,6 +376,7 @@ class KgDatabase:
         #自动搜索最大匹配单词
         tt=tkitText.Text()
         c,r=tt.find_match(text,word)
+        # print('122')
         if r>50:
             p=c
         else:
@@ -749,7 +750,89 @@ class KgDatabase:
         self.json_remove_duplicates("../tdata/onlyner/train.json")
         self.json_remove_duplicates("../tdata/onlyner/dev.json")
         print("已经将数据导出到 .../tdata/onlyner/")
+    # save
+    def save_to_json_ner_bio(self):
+        tkitFile.File().mkdir("../tdata/onlyner_bio")
+        # self.tdb.load("kg_mark_unique_data")
+        data=[]
+        all_data_id=[]
+        nlp_plus=tkitNlp.Plus()
+        nlp_plus.load_tlp()
+        flags={}
+        for it in DB.kg_mark_unique_data.find():
+            # print("k",k)
+            k=it['_id']
+            try: 
+                # it=self.tdb.str_dict(v)
+                text=it['sentence']
+                # print("it",it)
+                label= ["O"]*len(text)
+                ner={}
+                for one in it['kgs']:
+                    # print(one)
+                    # label,s1=self.mark_word_label(it['sentence'],label,one[0],"实体")
+                    # label,s1=self.mark_word_label(it['sentence'],label,one[1],"关系")
+                    try:
+                        if one[1] not in ner[one[0]]:
+                            ner[one[0]].append(one[1])
+                    except:
+                        ner[one[0]]=[one[1]]
+                # print("++++++"*10)
+                # print('text',text)                
+                ner_list =[tmp for  tmp in ner.keys() ]
+                # print('ner_list',ner_list)   
+                # print(ner_list)
+                # fner =[word for word,flag in nlp_plus.ner(text)]
+                fner=[]
+                for word,flag in nlp_plus.ner(text):
+                    flags[flag]=0
+                    fner.append(word)
+                ner_list=list(set(ner_list+fner))
+                ner_list = sorted(ner_list,key = lambda i:len(i),reverse=False)
+
+                # print('ner_list',ner_list)
+                s=0
+                for nr in ner_list:
+                
+                    # print(nr)
+                    label,s1=nlp_plus.mark_word_label(text,label,nr,"实体")
+                    if s1>=0:
+                        s=s+1
+                if s>0:
+                    # one={'text':list(text),'label':label}
+                    one=[]
+                    for it_w,it_l in zip(list(text),label):
+                        one.append((it_w,it_l))
+
+                    data.append(one)
+                    
+                    # print(flags)
+            except:
+                pass
+        nlp_plus.release()
+        c=int(len(data)*0.7)
+        b=int(len(data)*0.85)
+        print(data[:10])
+        print(len(data))
+        train_data=data[:c]
+        dev_data=data[c:b]
+        test_data=data[b:]
+        self.save_data(train_data,file="../tdata/onlyner_bio/train.txt")
+        self.save_data(dev_data,file="../tdata/onlyner_bio/dev.txt")
+        self.save_data(test_data,file="../tdata/onlyner_bio/test.txt")
+        self.save_labels(data,"../tdata/onlyner_bio/labels.txt")
+        # c=int(len(data)*0.85)
+        # # kgjson_t.save(data[:c])
+        # # kgjson_d.save(data[c:])
+        # print("总共生成数据",len(data))
+        # #自动处理重复标记问题
+        # # self.json_remove_duplicates("../tdata/onlyner/train.json")
+        # # self.json_remove_duplicates("../tdata/onlyner/dev.json")
+        # print("已经将数据导出到 .../tdata/onlyner_bio/")
    
+
+
+
     def save_to_json_kg(self):
         """
         保存知识提取训练集
@@ -794,6 +877,99 @@ class KgDatabase:
         self.json_remove_duplicates("../tdata/kg/train.json")
         self.json_remove_duplicates("../tdata/kg/dev.json")
         print("已经将数据导出到 ../tdata/kg")
+    def save_labels(self,data,file="labels.txt"):
+        """
+        构建数据保存
+        """
+        labels={}
+        with open(file,'w',encoding = 'utf-8') as f1:
+            for it in data:
+                for w,m in it:
+                    labels[m]=1
+                    # print(m,w)
+            keys=[]
+            for key in labels.keys():
+                keys.append(key)
+            f1.write("\n".join(keys))
+
+    def save_data(self,data,file="data.txt"):
+        """
+        构建数据保存
+        """
+        with open(file,'w',encoding = 'utf-8') as f1:
+            for it in data:
+                for w,m in it:
+                    # print(m,w)
+                    f1.write(w+" "+m+"\n")
+                # print("end\n\n\n\n")
+                f1.write("\n")
+    def save_to_json_kg_tmark(self):
+        """
+        保存知识提取训练集
+        https://github.com/napoler/tmark_Description
+        https://www.kaggle.com/terrychanorg/tmark-description
+        # https://www.kaggle.com/terrychanorg/albert-bilstm-crf-pytorch/data
+        """
+        tkitFile.File().mkdir("../tdata/kg_tmark")
+        kgjson_t=tkitFile.Json("../tdata/kg_tmark/train.json")
+        kgjson_d=tkitFile.Json("../tdata/kg_tmark/dev.json")
+        # kgjson_l=tkitFile.Json("../tdata/labels.json")
+        
+        # self.tdb.load("kg_mark_unique_data")
+        data=[]
+        all_data_id=[]
+        for it in DB.kg_mark_unique_data.find():
+            # print("k",k)
+            k=it['_id']
+            try: 
+                # it=self.tdb.str_dict(v)
+                # print("it",it)
+                label=['O']*len(it['sentence'])
+                s=0
+                # print('222')
+                for one in it['kgs']:
+                    label,s1=self.mark_word_label(it['sentence'],label,one[1]+one[2],"描述")
+                    if s1>=0:
+                        s=s+1
+                    # label,s1=self.mark_word_label(it['sentence'],label,one[1],"关系")
+                # print(label)
+                d={'text':list(one[0])+['[SEP]']+list(it['sentence']),'label':['实体']*len(one[0])+['X']+label}
+                # print(d)
+                # print(len(d['text']),len(d['label']))
+                # print(d)
+                if len(d['text'])==len(d['label']):
+                    one_kg_tmk=[]
+                    for  t,tmk_l in zip(d['text'],d['label']):
+                        # print(t,tmk_l)
+                        one_kg_tmk.append((t,tmk_l))
+                    if s>0:
+                        # print(s)
+                        # print(one_kg_tmk)
+                        data.append(one_kg_tmk)
+            except:
+                # self.tdb.load("kg")
+                continue
+        # c=int(len(data)*0.85)
+        # kgjson_t.save(data[:c])
+        # kgjson_d.save(data[c:])
+        print("总共生成数据",len(data))
+        #自动处理重复标记问题
+        # self.json_remove_duplicates("../tdata/kg_tmark/train.json")
+        # self.json_remove_duplicates("../tdata/kg_tmark/dev.json")
+        c=int(len(data)*0.7)
+        b=int(len(data)*0.85)
+        print(data[:10])
+        print(len(data))
+        train_data=data[:c]
+        dev_data=data[c:b]
+        test_data=data[b:]
+        self.save_data(train_data,file="../tdata/kg_tmark/train.txt")
+        self.save_data(dev_data,file="../tdata/kg_tmark/dev.txt")
+        self.save_data(test_data,file="../tdata/kg_tmark/test.txt")
+        self.save_labels(data,"../tdata/kg_tmark/labels.txt")
+        print("已经将数据导出到 ../tdata/kg_tmark")
+
+
     def updata_test(self):
         """
         修正之前数据
@@ -821,6 +997,8 @@ if __name__ == '__main__':
         8 将所有数据保存为json 备份  
         9 更新key
         11 生成SQuAD训练样本
+        12 生成tmark_Description训练样本
+        13 ner_bio格式
         """)
         x=input("输入命令：")
         try:
@@ -854,6 +1032,10 @@ if __name__ == '__main__':
             kg.updata_test()
         elif x==11:
             kg.save_to_json_SQuAD()
+        elif x==12:
+            kg.save_to_json_kg_tmark()
+        elif x==13:
+            kg.save_to_json_ner_bio()
         else:
             print("输入有误")
             

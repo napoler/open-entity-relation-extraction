@@ -81,7 +81,7 @@ from pyltp import NamedEntityRecognizer
 # 查看内存占用
 from memory_profiler import profile
 
-
+from kg_lvdb import KgDatabase
 # kg=KgDatabase()
 # ht0 = HarvestText()
 # tfile=tkitFile.File()
@@ -96,9 +96,9 @@ from memory_profiler import profile
 # #检查是不是知识
 # Check_kg=classify(model_name_or_path='../tdata/albert_Check_kg')
 # # check_pet=classify(model_name_or_path='../tdata/albert-chinese-pytorch-pet')
+kg=KgDatabase()
 
-
-from mark import *
+# from mark import *
 from TEntityRel import *
 from config import *
 
