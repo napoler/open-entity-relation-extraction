@@ -999,6 +999,7 @@ if __name__ == '__main__':
         11 生成SQuAD训练样本
         12 生成tmark_Description训练样本
         13 ner_bio格式
+        14 生成reformer-chinese知识提取 格式 “句子+[KGS][KG]知识[/KG][/KGS]”
         """)
         x=input("输入命令：")
         try:
